@@ -1,0 +1,199 @@
+{
+  "entities": {
+    "Volunteer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Volunteer",
+      "type": "object",
+      "description": "Represents a volunteer registered in the system, including their personal details, skills, location, and availability.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Volunteer entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the volunteer."
+        },
+        "skills": {
+          "type": "array",
+          "description": "A list of skills the volunteer possesses.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "location": {
+          "type": "string",
+          "description": "The geographical location of the volunteer."
+        },
+        "availabilityHoursPerWeek": {
+          "type": "number",
+          "description": "The number of hours the volunteer is available per week."
+        },
+        "trustScore": {
+          "type": "number",
+          "description": "An optional score indicating the volunteer's trustworthiness, for future enhancements."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "skills",
+        "location",
+        "availabilityHoursPerWeek"
+      ]
+    },
+    "Mission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Mission",
+      "type": "object",
+      "description": "Represents a mission or project posted by an NGO, detailing its requirements, urgency, and location.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Mission entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the mission."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the mission's objectives and tasks."
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "A list of skills required from volunteers for this mission.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "location": {
+          "type": "string",
+          "description": "The geographical location where the mission will take place."
+        },
+        "urgency": {
+          "type": "string",
+          "description": "The urgency level of the mission (e.g., Low, Medium, High)."
+        },
+        "volunteersNeeded": {
+          "type": "number",
+          "description": "The total number of volunteers required for this mission."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the mission (e.g., 'Open', 'In Progress', 'Completed')."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "requiredSkills",
+        "location",
+        "urgency",
+        "volunteersNeeded",
+        "status"
+      ]
+    },
+    "MissionVolunteerMatch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MissionVolunteerMatch",
+      "type": "object",
+      "description": "Represents a generated match between a specific volunteer and a mission, including the calculated score and AI explanation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MissionVolunteerMatch entity."
+        },
+        "missionId": {
+          "type": "string",
+          "description": "Reference to the Mission entity. (Relationship: Mission 1:N MissionVolunteerMatch)"
+        },
+        "volunteerId": {
+          "type": "string",
+          "description": "Reference to the Volunteer entity. (Relationship: Volunteer 1:N MissionVolunteerMatch)"
+        },
+        "matchScore": {
+          "type": "number",
+          "description": "The calculated matching score between the volunteer and the mission."
+        },
+        "explanation": {
+          "type": "string",
+          "description": "An AI-generated explanation detailing the reasons for this specific match."
+        },
+        "matchedAt": {
+          "type": "string",
+          "description": "The date and time when this match was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "missionId",
+        "volunteerId",
+        "matchScore",
+        "explanation",
+        "matchedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/volunteers/{volunteerId}",
+        "definition": {
+          "entityName": "Volunteer",
+          "schema": {
+            "$ref": "#/backend/entities/Volunteer"
+          },
+          "description": "Stores individual volunteer profiles. Access to these documents is universal, reflecting the application's unauthenticated nature. Each document's ID corresponds to the 'id' field within the Volunteer entity.",
+          "params": [
+            {
+              "name": "volunteerId",
+              "description": "The unique identifier for a specific volunteer."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/missions/{missionId}",
+        "definition": {
+          "entityName": "Mission",
+          "schema": {
+            "$ref": "#/backend/entities/Mission"
+          },
+          "description": "Contains details of missions posted by NGOs. All mission data is universally accessible. Each document's ID corresponds to the 'id' field within the Mission entity.",
+          "params": [
+            {
+              "name": "missionId",
+              "description": "The unique identifier for a specific mission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/missionVolunteerMatches/{matchId}",
+        "definition": {
+          "entityName": "MissionVolunteerMatch",
+          "schema": {
+            "$ref": "#/backend/entities/MissionVolunteerMatch"
+          },
+          "description": "Stores generated matches between volunteers and missions, including match scores and explanations. This is a top-level collection to facilitate flexible querying across both missions and volunteers, without requiring hierarchical dependencies. Access to these documents is universal. Each document's ID corresponds to the 'id' field within the MissionVolunteerMatch entity.",
+          "params": [
+            {
+              "name": "matchId",
+              "description": "The unique identifier for a specific mission-volunteer match."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for VolunteerBridge is designed with a strong emphasis on simplicity and direct access, in alignment with the 'No authentication/login required' constraint. Each core entity—Volunteer, Mission, and MissionVolunteerMatch—is represented as a top-level collection. This approach ensures maximum flexibility for an unauthenticated application while maintaining a clear and predictable data model.\n\n**Authorization Independence:** Given the explicit requirement for 'No authentication/login required', the concept of authorization independence, particularly the avoidance of hierarchical authorization dependencies via `get()` calls in security rules, becomes implicitly satisfied. There are no user-specific `request.auth.uid` checks or complex role-based access controls to enforce. Each document is self-contained and directly accessible, meaning no document's access relies on reading a parent or related document's attributes for authorization purposes. This 'public by default' design means all data in these collections is intended to be universally readable and writable by the application logic, eliminating the need for denormalized authorization fields. If authentication were introduced in the future, authorization fields like `ownerId` or `members` would be added to documents and relevant subcollections, coupled with appropriate security rules.\n\n**QAPs (Rules are not Filters):** This structure inherently supports 'Queries as Authorization Policies' (QAPs). Since there is no user authentication, all data within the top-level collections (`/volunteers`, `/missions`, `/missionVolunteerMatches`) is treated as globally accessible. Therefore, a `list` operation on any of these collections (e.g., `db.collection('volunteers').get()`) will simply retrieve all available documents. This fully aligns with the QAP principle because the query itself defines the scope of data the client is allowed to access (i.e., 'all volunteers'), without requiring Firestore security rules to filter the results. There is no distinction between public and private data within the same collection, simplifying data retrieval and rule definitions (should rules ever be implemented for basic data validation).\n\n**Structural Segregation:** Each collection (`/volunteers`, `/missions`, `/missionVolunteerMatches`) is designed to have a homogeneous security posture. All documents within `volunteers` are 'Volunteer' entities, all in `missions` are 'Mission' entities, and all in `missionVolunteerMatches` are 'MissionVolunteerMatch' entities. This means all documents within a given collection share the same access requirements, further simplifying rule writing and ensuring data consistency. The `MissionVolunteerMatch` entity is placed in a top-level collection to allow for efficient querying and display from both mission and volunteer perspectives without complex collection group queries or deep nesting, which would be unnecessary given the unauthenticated nature of the application."
+  }
+}
