@@ -3,14 +3,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UserPlus, Send, Search, Sparkles } from "lucide-react";
+import { LayoutDashboard, UserPlus, Send, Search, AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/register", label: "Register Volunteer", icon: UserPlus },
-  { href: "/post-mission", label: "Post Mission", icon: Send },
-  { href: "/matches", label: "View Matches", icon: Search },
+  { href: "/register", label: "Volunteer Registration", icon: UserPlus },
+  { href: "/post-mission", label: "Mission Posting", icon: Send },
+  { href: "/matches", label: "AI Matching", icon: Search },
+  { href: "/emergency", label: "Emergency Mode", icon: AlertTriangle },
 ];
 
 export function NavSidebar() {

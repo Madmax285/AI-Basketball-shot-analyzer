@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getStoredData } from "@/lib/store";
 import { Mission, Volunteer } from "@/lib/types";
-import { Users, Rocket, CheckCircle2, TrendingUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Users, Rocket, CheckCircle2, TrendingUp, Star } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 
 export default function Dashboard() {
   const [data, setData] = useState<{ volunteers: Volunteer[], missions: Mission[] }>({ volunteers: [], missions: [] });
@@ -19,25 +19,39 @@ export default function Dashboard() {
   const totalMissions = data.missions.length;
   const completedMissions = data.missions.filter(m => m.completed).length;
   const activeMissions = totalMissions - completedMissions;
+  const averageTrustScore = totalVolunteers > 0 
+    ? Math.round(data.volunteers.reduce((acc, v) => acc + (v.trustScore || 0), 0) / totalVolunteers) 
+    : 0;
 
   const chartData = [
     { name: "Volunteers", value: totalVolunteers, color: "hsl(var(--primary))" },
-    { name: "Active", value: activeMissions, color: "hsl(var(--accent))" },
+    { name: "Active Missions", value: activeMissions, color: "hsl(var(--accent))" },
     { name: "Completed", value: completedMissions, color: "hsl(var(--chart-3))" },
   ];
+
+  const skillDistribution = Array.from(new Set(data.volunteers.flatMap(v => v.skills))).map(skill => ({
+    name: skill,
+    value: data.volunteers.filter(v => v.skills.includes(skill)).length
+  })).sort((a, b) => b.value - a.value);
 
   const stats = [
     { label: "Total Volunteers", value: totalVolunteers, icon: Users, color: "text-primary" },
     { label: "Active Missions", value: activeMissions, icon: Rocket, color: "text-accent" },
     { label: "Completed", value: completedMissions, icon: CheckCircle2, color: "text-emerald-500" },
-    { label: "Success Rate", value: totalMissions > 0 ? `${Math.round((completedMissions / totalMissions) * 100)}%` : "0%", icon: TrendingUp, color: "text-blue-500" },
+    { label: "Avg Trust Score", value: `${averageTrustScore}/100`, icon: Star, color: "text-yellow-500" },
   ];
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Platform Overview</h1>
-        <p className="text-muted-foreground">Monitor the impact of VolunteerBridge matches.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics Dashboard</h1>
+          <p className="text-muted-foreground">Real-time overview of community impact and readiness.</p>
+        </div>
+        <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">
+          <p className="text-xs font-bold text-primary uppercase tracking-wider">Platform Status</p>
+          <p className="text-sm font-semibold">Ready for Deployment</p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -54,11 +68,11 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="col-span-1">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Impact Metrics</CardTitle>
-            <CardDescription>Volunteer activity vs Mission status</CardDescription>
+            <CardDescription>Visualizing volunteer capacity vs mission demands</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -80,20 +94,38 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
+        <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest registered missions and volunteers</CardDescription>
+            <CardTitle>Skill Capacity</CardTitle>
+            <CardDescription>Top distributed skills</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.missions.slice(-3).reverse().map((m) => (
-                <div key={m.id} className="flex items-center gap-3">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium leading-none">{m.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{m.urgency} Urgency • {m.location}</p>
-                  </div>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={skillDistribution.slice(0, 5)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {skillDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 space-y-1">
+              {skillDistribution.slice(0, 3).map((s, i) => (
+                <div key={s.name} className="flex justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{backgroundColor: `hsl(var(--chart-${i+1}))`}} />
+                    {s.name}
+                  </span>
+                  <span className="font-bold">{s.value}</span>
                 </div>
               ))}
             </div>

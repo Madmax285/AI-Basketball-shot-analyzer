@@ -2,29 +2,32 @@
 import { Volunteer, Mission, MatchScore } from './types';
 
 export const calculateMatchScore = (volunteer: Volunteer, mission: Mission): MatchScore => {
-  // Skill match (weight: 0.5)
+  // Skill match (Weight: 5 -> scaled to 50%)
   const matchedSkills = volunteer.skills.filter(s => mission.requiredSkills.includes(s));
   const skillRatio = mission.requiredSkills.length > 0 ? matchedSkills.length / mission.requiredSkills.length : 0;
   const skillAlignment = skillRatio * 50;
 
-  // Location match (weight: 0.25)
-  // Simple string comparison for demo. In a real app, use geocoding/proximity.
-  const locationAlignment = volunteer.location.toLowerCase() === mission.location.toLowerCase() ? 25 : 0;
+  // Location match (Weight: 3 -> scaled to 30%)
+  const locationAlignment = volunteer.location.toLowerCase() === mission.location.toLowerCase() ? 30 : 0;
 
-  // Availability (weight: 0.15)
-  // Normalize availability. Assume 20 hours is "max" for scoring.
-  const availabilityAlignment = Math.min((volunteer.availability / 20) * 15, 15);
+  // Availability (Weight: 2 -> scaled to 20%)
+  // Normalize availability. Assume 20 hours is the "standard" max for scoring.
+  const availabilityAlignment = Math.min((volunteer.availability / 20) * 20, 20);
 
-  // Urgency Boost (weight: 0.1)
+  // Urgency Boost (+2 -> scaled to 10%)
   let urgencyBonus = 0;
   if (mission.urgency === 'High') urgencyBonus = 10;
   else if (mission.urgency === 'Medium') urgencyBonus = 5;
 
-  const totalScore = skillAlignment + locationAlignment + availabilityAlignment + urgencyBonus;
+  // Trust Score Bonus (Optional bonus based on user request)
+  // Adds up to 5 points extra for high trust scores
+  const trustBonus = (volunteer.trustScore || 0) / 20;
+
+  const totalScore = Math.min(100, Math.round(skillAlignment + locationAlignment + availabilityAlignment + urgencyBonus + trustBonus));
 
   return {
     volunteerId: volunteer.id,
-    score: Math.round(totalScore),
+    score: totalScore,
     skillAlignment,
     locationAlignment,
     availabilityAlignment,
