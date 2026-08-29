@@ -3,88 +3,42 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * CORE PHILOSOPHY
-     * This ruleset implements a "Public Read, Restricted Write" model designed for an open-access 
-     * volunteer platform. While the application logic is designed to be accessible, these rules 
-     * enforce identity-based protection where possible to prevent unauthorized data tampering.
-     *
-     * DATA STRUCTURE
-     * The database uses a flat, top-level collection structure (/volunteers, /missions, 
-     * /missionVolunteerMatches) to allow for high-performance querying without complex 
-     * nesting or cross-document lookups.
-     *
-     * KEY SECURITY DECISIONS
-     * 1. Public Discovery: All volunteer profiles, missions, and match results are publicly 
-     *    readable to facilitate community engagement.
-     * 2. Identity-Linked Profiles: Volunteer profiles are secured using an Ownership pattern 
-     *    where the Document ID must match the User's Authentication UID.
-     * 3. Schema Constraints: For Missions and Matches, the current schema lacks explicit 
-     *    ownership fields (e.g., authorId). Rules for these collections are currently 
-     *    placeholder-restricted to prevent anonymous mass-deletion while the schema matures.
-     * 
-     * DENORMALIZATION FOR AUTHORIZATION
-     * To maintain high performance, the 'Volunteer' documents use their own ID as the 
-     * primary authorization key, removing the need for 'get()' calls during write operations.
+     * ERP PROTOTYPE RULES
+     * These rules allow public access to the enterprise data entities.
+     * This is intended for a prototype environment where the login barrier has been removed.
      */
 
-    // --- Global Helper Functions ---
-
-    /** @description Checks if the request is made by a signed-in user. */
-    function isSignedIn() {
-      return request.auth != null;
+    match /customers/{customerId} {
+      allow read, write: if true;
     }
 
-    /** @description Checks if the user's UID matches the provided ID. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    match /products/{productId} {
+      allow read, write: if true;
     }
 
-    /** @description Checks if the user owns the existing document before modification. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    match /salesOrders/{orderId} {
+      allow read, write: if true;
     }
 
-    // --- Collection Rules ---
+    match /deliveries/{deliveryId} {
+      allow read, write: if true;
+    }
 
-    /**
-     * @description Rules for volunteer profiles. Users can only manage their own profile.
-     * @path /volunteers/{volunteerId}
-     * @allow (get/list) Public access to see volunteer details.
-     * @allow (create) If the user's UID matches the new document ID.
-     * @deny (update) If a user tries to change someone else's profile.
-     * @principle Ownership: Ties document lifecycle to the authenticated user's identity.
-     */
+    match /shipments/{shipmentId} {
+      allow read, write: if true;
+    }
+    
+    // Legacy collections (if still present in database)
     match /volunteers/{volunteerId} {
-      allow get, list: if true;
-      allow create: if isOwner(volunteerId) && request.resource.data.id == volunteerId;
-      allow update: if isExistingOwner(volunteerId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(volunteerId);
+      allow read, write: if true;
     }
-
-    /**
-     * @description Rules for mission postings.
-     * @path /missions/{missionId}
-     * @allow (get/list) Public access to browse missions.
-     * @deny (create/update/delete) Restricted until an ownership field is added to the schema.
-     * @principle Public Read / Owner Writes: Requires an authorId to securely delegate write permissions.
-     */
+    
     match /missions/{missionId} {
-      allow get, list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'Mission' entity is missing an 'ownerId' or 'authorId' field.
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow read, write: if true;
     }
-
-    /**
-     * @description Rules for mission-volunteer matches.
-     * @path /missionVolunteerMatches/{matchId}
-     * @allow (get/list) Public access to view matches and explanations.
-     * @deny (create/update/delete) Restricted to prevent unauthorized modification of AI-generated scores.
-     * @principle Integrity: Matches are sensitive data points that require specific authorship or admin roles.
-     */
+    
     match /missionVolunteerMatches/{matchId} {
-      allow get, list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'MissionVolunteerMatch' entity is missing an 'ownerId' or 'creatorId' field.
-      allow create, update, delete: if false; // TODO: Restrict to system-admin or matching-engine identity.
+      allow read, write: if true;
     }
   }
 }
