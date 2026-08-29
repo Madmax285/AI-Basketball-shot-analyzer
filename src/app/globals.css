@@ -5,52 +5,26 @@
 
 @layer base {
   :root {
-    --background: 188 30% 95%;
-    --foreground: 184 60% 10%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 184 60% 10%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 184 60% 10%;
-    --primary: 184 60% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 161 74% 95%;
-    --secondary-foreground: 161 74% 25%;
-    --muted: 188 15% 90%;
-    --muted-foreground: 184 30% 40%;
-    --accent: 161 74% 64%;
-    --accent-foreground: 161 74% 15%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 184 20% 85%;
-    --input: 184 20% 85%;
-    --ring: 184 60% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
     --radius: 0.75rem;
-    --chart-1: 184 60% 50%;
-    --chart-2: 161 74% 64%;
-    --chart-3: 188 40% 40%;
-    --chart-4: 161 40% 50%;
-    --chart-5: 184 80% 30%;
-  }
-  .dark {
-    --background: 184 60% 5%;
-    --foreground: 188 30% 95%;
-    --card: 184 60% 8%;
-    --card-foreground: 188 30% 95%;
-    --popover: 184 60% 8%;
-    --popover-foreground: 188 30% 95%;
-    --primary: 184 60% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 184 30% 15%;
-    --secondary-foreground: 188 30% 95%;
-    --muted: 184 30% 15%;
-    --muted-foreground: 188 15% 70%;
-    --accent: 161 74% 64%;
-    --accent-foreground: 161 74% 15%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 184 30% 20%;
-    --input: 184 30% 20%;
-    --ring: 184 60% 50%;
   }
 }
 
@@ -61,4 +35,18 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
   }
+}
+
+/* Custom scrollbar for ERP tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
 }

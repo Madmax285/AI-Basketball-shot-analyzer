@@ -3,7 +3,19 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, UserPlus, Send, Search, AlertTriangle, Sparkles, LogOut, User } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Package, 
+  ShoppingCart, 
+  Truck, 
+  Globe, 
+  BarChart3, 
+  LogOut, 
+  User,
+  Settings,
+  Ship
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -12,10 +24,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/register", label: "Volunteer Profile", icon: UserPlus },
-  { href: "/post-mission", label: "Mission Posting", icon: Send },
-  { href: "/matches", label: "AI Matching", icon: Search },
-  { href: "/emergency", label: "Emergency Mode", icon: AlertTriangle },
+  { href: "/customers", label: "Customers", icon: Users },
+  { href: "/products", label: "Products", icon: Package },
+  { href: "/sales-orders", label: "Sales Orders", icon: ShoppingCart },
+  { href: "/deliveries", label: "Deliveries", icon: Truck },
+  { href: "/shipments", label: "Shipments", icon: Ship },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export function NavSidebar() {
@@ -30,14 +44,14 @@ export function NavSidebar() {
   };
 
   return (
-    <aside className="w-64 border-r bg-white/50 backdrop-blur-sm h-screen sticky top-0 flex flex-col">
+    <aside className="w-64 border-r bg-slate-900 text-slate-300 h-screen sticky top-0 flex flex-col">
       <div className="p-6 flex-1">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="bg-primary p-1.5 rounded-lg">
-            <Sparkles className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-2 mb-8 px-2">
+          <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg">
+            <Globe className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-primary">
-            VolunteerBridge
+          <h1 className="text-lg font-bold tracking-tight text-white">
+            Sales & Delivery
           </h1>
         </div>
         
@@ -47,10 +61,10 @@ export function NavSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all",
                 pathname === item.href
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:bg-secondary hover:text-primary"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-900/20"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -60,42 +74,43 @@ export function NavSidebar() {
         </nav>
       </div>
       
-      <div className="p-4 border-t bg-secondary/10">
+      <div className="p-4 border-t border-slate-800 bg-slate-950/50">
         {!isUserLoading && user ? (
           <div className="flex items-center gap-3 mb-4 px-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/20 text-primary text-xs">
+            <Avatar className="h-9 w-9 border border-slate-700">
+              <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs font-bold">
                 {user.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate">{user.email || 'Guest User'}</p>
-              <p className="text-[10px] text-muted-foreground truncate">Signed in</p>
+              <p className="text-xs font-semibold text-slate-100 truncate">{user.email || 'Guest User'}</p>
+              <p className="text-[10px] text-slate-500 truncate">Administrator</p>
             </div>
           </div>
         ) : null}
         
-        {user ? (
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+            className="justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-800"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="text-xs">Setup</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10"
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
-            Logout
+            <span className="text-xs">Exit</span>
           </Button>
-        ) : (
-          <Link href="/login">
-            <Button size="sm" className="w-full gap-2">
-              <User className="h-4 w-4" />
-              Sign In
-            </Button>
-          </Link>
-        )}
+        </div>
         
-        <p className="text-[10px] text-muted-foreground text-center mt-4">
-          © 2024 VolunteerBridge AI
+        <p className="text-[10px] text-slate-600 text-center mt-6 uppercase tracking-widest font-bold">
+          ERP Prototyper v1.0
         </p>
       </div>
     </aside>
