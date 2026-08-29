@@ -3,27 +3,61 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
-import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Globe, User, Mail, Lock } from 'lucide-react';
+import { Globe, User, Mail, Lock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RegisterPage() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    initiateEmailSignUp(auth, email, password);
+    
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Create the user profile document in Firestore
+      // For the first user or testing, we default to ADMIN role
+      await setDoc(doc(firestore, 'users', user.uid), {
+        id: user.uid,
+        email: user.email,
+        displayName: name,
+        role: 'ADMIN', // Defaulting to ADMIN for this prototype to allow full access
+        createdAt: new Date().toISOString()
+      });
+
+      toast({
+        title: "Account Created",
+        description: "Welcome to the Sales & Delivery System.",
+      });
+      
+      router.push('/');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "Could not create account.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -87,7 +121,14 @@ export default function RegisterPage() {
               </div>
             </div>
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 h-11" disabled={isLoading}>
-              {isLoading ? 'Creating Account...' : 'Register User'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Register User'
+              )}
             </Button>
           </form>
         </CardContent>
