@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -9,10 +8,9 @@ import {
   Package, 
   ShoppingCart, 
   Truck, 
+  Ship,
   Globe, 
-  BarChart3, 
-  Settings,
-  Ship
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,7 +22,6 @@ const navItems = [
   { href: "/sales-orders", label: "Sales Orders", icon: ShoppingCart },
   { href: "/deliveries", label: "Deliveries", icon: Truck },
   { href: "/shipments", label: "Shipments", icon: Ship },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export function NavSidebar() {
