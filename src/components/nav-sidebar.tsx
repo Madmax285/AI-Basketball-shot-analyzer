@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,16 +11,11 @@ import {
   Truck, 
   Globe, 
   BarChart3, 
-  LogOut, 
-  User,
   Settings,
   Ship
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser, useAuth } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -34,14 +29,6 @@ const navItems = [
 
 export function NavSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
 
   return (
     <aside className="w-64 border-r bg-slate-900 text-slate-300 h-screen sticky top-0 flex flex-col">
@@ -75,37 +62,14 @@ export function NavSidebar() {
       </div>
       
       <div className="p-4 border-t border-slate-800 bg-slate-950/50">
-        {!isUserLoading && user ? (
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <Avatar className="h-9 w-9 border border-slate-700">
-              <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs font-bold">
-                {user.email?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-100 truncate">{user.email || 'Guest User'}</p>
-              <p className="text-[10px] text-slate-500 truncate">Administrator</p>
-            </div>
-          </div>
-        ) : null}
-        
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-2">
           <Button 
             variant="ghost" 
             size="sm" 
             className="justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-800"
           >
             <Settings className="h-4 w-4" />
-            <span className="text-xs">Setup</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="text-xs">Exit</span>
+            <span className="text-xs">System Settings</span>
           </Button>
         </div>
         
