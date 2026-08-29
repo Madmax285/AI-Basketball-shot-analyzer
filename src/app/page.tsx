@@ -1,9 +1,9 @@
-
 'use client';
 
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
   ShoppingBag, 
   Users, 
@@ -38,7 +38,7 @@ export default function Dashboard() {
   const totalRevenue = orders?.reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0) || 0;
   const pendingOrders = orders?.filter(o => ['NEW', 'CONFIRMED', 'PROCESSING'].includes(o.status)).length || 0;
   const lowStockCount = products?.filter(p => p.availableStock <= p.reorderLevel).length || 0;
-  const totalStockValue = products?.reduce((acc, p) => acc + (p.availableStock * p.unitPrice), 0) || 0;
+  const totalStockValue = products?.reduce((acc, p) => acc + (p.availableStock * (p.unitPrice || 0)), 0) || 0;
   
   const delayedDeliveries = deliveries?.filter(d => 
     d.expectedDeliveryDate && isDeliveryDelayed(d.expectedDeliveryDate, d.status)
@@ -53,9 +53,13 @@ export default function Dashboard() {
 
   // Prepare monthly sales chart data
   const monthlyData = orders?.reduce((acc: any, order) => {
-    const month = format(new Date(order.orderDate), 'MMM');
-    if (!acc[month]) acc[month] = 0;
-    acc[month] += order.totalAmount;
+    try {
+      const month = format(new Date(order.orderDate), 'MMM');
+      if (!acc[month]) acc[month] = 0;
+      acc[month] += (order.totalAmount || 0);
+    } catch (e) {
+      // Handle invalid dates
+    }
     return acc;
   }, {}) || {};
 
@@ -205,12 +209,16 @@ export default function Dashboard() {
                       <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-6 py-4 font-bold text-blue-600 text-xs">#{d.id}</td>
                         <td className="px-6 py-4 text-xs font-medium text-slate-900">{d.customerName}</td>
-                        <td className="px-6 py-4 text-xs text-slate-500">{format(new Date(d.expectedDeliveryDate), 'MMM dd, yyyy')}</td>
+                        <td className="px-6 py-4 text-xs text-slate-500">
+                          {d.expectedDeliveryDate ? format(new Date(d.expectedDeliveryDate), 'MMM dd, yyyy') : '--'}
+                        </td>
                         <td className="px-6 py-4">
                           <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[8px] font-black uppercase">{d.status}</Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <span className="text-rose-600 font-black text-xs">+{calculateDaysDelayed(d.expectedDeliveryDate)} Days</span>
+                          <span className="text-rose-600 font-black text-xs">
+                            +{d.expectedDeliveryDate ? calculateDaysDelayed(d.expectedDeliveryDate) : 0} Days
+                          </span>
                         </td>
                       </tr>
                     ))
