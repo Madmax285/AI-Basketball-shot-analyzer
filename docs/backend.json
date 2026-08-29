@@ -1,10 +1,22 @@
 
 {
   "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "System user profile.",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "Sales", "Logistics"] }
+      },
+      "required": ["id", "email"]
+    },
     "Customer": {
       "title": "Customer",
       "type": "object",
-      "description": "Enterprise customer profile containing contact and billing information.",
+      "description": "Enterprise customer profile.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
@@ -18,7 +30,7 @@
     "Product": {
       "title": "Product",
       "type": "object",
-      "description": "Product catalog item including pricing and stock levels.",
+      "description": "Product catalog item.",
       "properties": {
         "id": { "type": "string" },
         "sku": { "type": "string" },
@@ -32,7 +44,7 @@
     "SalesOrder": {
       "title": "SalesOrder",
       "type": "object",
-      "description": "Sales document recording a customer's purchase request.",
+      "description": "Sales document recording a customer's purchase.",
       "properties": {
         "id": { "type": "string" },
         "customerId": { "type": "string" },
@@ -43,10 +55,24 @@
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status"]
     },
+    "OrderItem": {
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Individual items within a sales order.",
+      "properties": {
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" }
+      },
+      "required": ["id", "orderId", "productId", "quantity"]
+    },
     "Delivery": {
       "title": "Delivery",
       "type": "object",
-      "description": "Logistics document for order fulfillment and tracking.",
+      "description": "Logistics document for order fulfillment.",
       "properties": {
         "id": { "type": "string" },
         "orderId": { "type": "string" },
@@ -60,7 +86,7 @@
     "Shipment": {
       "title": "Shipment",
       "type": "object",
-      "description": "Grouping of multiple deliveries for transport.",
+      "description": "Consolidated transport groupings.",
       "properties": {
         "id": { "type": "string" },
         "departureDate": { "type": "string", "format": "date-time" },
@@ -75,17 +101,25 @@
     "providers": ["password"]
   },
   "firestore": {
+    "users": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "System user profiles."
+    },
     "customers": {
       "schema": { "$ref": "#/backend/entities/Customer" },
       "description": "Global customer records."
     },
     "products": {
       "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "Standard product master data."
+      "description": "Product master data."
     },
     "salesOrders": {
       "schema": { "$ref": "#/backend/entities/SalesOrder" },
-      "description": "Transactional sales order records."
+      "description": "Transactional sales orders."
+    },
+    "orderItems": {
+      "schema": { "$ref": "#/backend/entities/OrderItem" },
+      "description": "Detailed order items."
     },
     "deliveries": {
       "schema": { "$ref": "#/backend/entities/Delivery" },
@@ -93,7 +127,7 @@
     },
     "shipments": {
       "schema": { "$ref": "#/backend/entities/Shipment" },
-      "description": "Consolidated transport shipments."
+      "description": "Consolidated shipments."
     }
   }
 }

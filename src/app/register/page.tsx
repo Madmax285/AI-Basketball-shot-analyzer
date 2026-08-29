@@ -3,126 +3,103 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useAuth } from '@/firebase';
+import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
+import { Globe, User, Mail, Lock } from 'lucide-react';
+import Link from 'next/link';
 
-const DEFAULT_SKILLS = ['Medical', 'Teaching', 'Rescue', 'Tech', 'Logistics', 'Environment', 'Arts', 'Community'];
-
-export default function RegisterVolunteer() {
+export default function RegisterPage() {
   const router = useRouter();
-  const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [availability, setAvailability] = useState([10]);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const auth = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleSkill = (skill: string) => {
-    setSelectedSkills(prev => 
-      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    
-    if (!name || !location || selectedSkills.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Missing fields",
-        description: "Please fill in all details and select at least one skill."
-      });
-      return;
-    }
-
-    const volunteerRef = doc(firestore, 'volunteers', user.uid);
-    setDocumentNonBlocking(volunteerRef, {
-      id: user.uid,
-      name,
-      location,
-      availabilityHoursPerWeek: availability[0],
-      skills: selectedSkills,
-      trustScore: 100,
-    }, { merge: true });
-
-    toast({
-      title: "Profile Saved!",
-      description: "Your volunteer profile is now active."
-    });
-
-    setTimeout(() => router.push("/"), 1500);
+    setIsLoading(true);
+    initiateEmailSignUp(auth, email, password);
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Volunteer Profile</h1>
-        <p className="text-muted-foreground">Define your skills and availability to help the community.</p>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Registration Details</CardTitle>
-            <CardDescription>Your information will be used to match you with appropriate missions.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-md border-none shadow-xl">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <div className="bg-blue-600 p-3 rounded-2xl shadow-lg">
+              <Globe className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-bold text-slate-900">Create Account</CardTitle>
+            <CardDescription>Join the Sales & Delivery Management System</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Jane Smith" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">City / District</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Brooklyn" />
-            </div>
-
-            <div className="space-y-4">
-              <Label>Availability (Hours per week): {availability[0]}h</Label>
-              <Slider 
-                value={availability} 
-                onValueChange={setAvailability} 
-                max={40} 
-                step={1} 
-              />
-            </div>
-
-            <div className="space-y-3">
-              <Label>Expertise Areas</Label>
-              <div className="grid grid-cols-2 gap-4">
-                {DEFAULT_SKILLS.map((skill) => (
-                  <div key={skill} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`skill-${skill}`} 
-                      checked={selectedSkills.includes(skill)} 
-                      onCheckedChange={() => toggleSkill(skill)}
-                    />
-                    <Label htmlFor={`skill-${skill}`} className="text-sm font-normal cursor-pointer">
-                      {skill}
-                    </Label>
-                  </div>
-                ))}
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  id="name" 
+                  type="text" 
+                  placeholder="John Doe" 
+                  className="pl-10"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required 
+                />
               </div>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full h-11">
-              Update Profile
+            <div className="space-y-2">
+              <Label htmlFor="email">Work Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@company.com" 
+                  className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required 
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  className="pl-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required 
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 h-11" disabled={isLoading}>
+              {isLoading ? 'Creating Account...' : 'Register User'}
             </Button>
-          </CardFooter>
-        </Card>
-      </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4 text-center border-t border-slate-100 pt-6 mt-2">
+          <p className="text-sm text-slate-500">
+            Already have an account?{' '}
+            <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

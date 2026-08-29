@@ -1,54 +1,10 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * ERP PROTOTYPE RULES
-     * These rules allow public access to all enterprise data entities.
-     * This is intended for a prototype environment where the login barrier has been removed.
-     */
-
-    // Customers collection
-    match /customers/{customerId} {
-      allow read, write: if true;
-    }
-
-    // Products collection
-    match /products/{productId} {
-      allow read, write: if true;
-    }
-
-    // Sales Orders collection
-    match /salesOrders/{orderId} {
-      allow read, write: if true;
-    }
-
-    // Deliveries collection
-    match /deliveries/{deliveryId} {
-      allow read, write: if true;
-    }
-
-    // Shipments collection
-    match /shipments/{shipmentId} {
-      allow read, write: if true;
-    }
-    
-    // Support for potential sub-collections or other entities defined in backend.json
-    match /{path=**} {
-      allow read, write: if true;
-    }
-
-    // Legacy collections (for backward compatibility during migration)
-    match /volunteers/{volunteerId} {
-      allow read, write: if true;
-    }
-    
-    match /missions/{missionId} {
-      allow read, write: if true;
-    }
-    
-    match /missionVolunteerMatches/{matchId} {
-      allow read, write: if true;
+    // Allow authenticated users to read and write all collections
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
