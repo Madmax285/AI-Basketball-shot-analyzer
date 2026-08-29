@@ -4,97 +4,105 @@
     "User": {
       "title": "User",
       "type": "object",
-      "description": "System user profile.",
+      "description": "System user profile with role-based permissions.",
       "properties": {
         "id": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["Admin", "Sales", "Logistics"] }
+        "role": { "type": "string", "enum": ["ADMIN", "SALES_USER", "LOGISTICS_USER"] }
       },
-      "required": ["id", "email"]
+      "required": ["id", "email", "role"]
     },
     "Customer": {
       "title": "Customer",
       "type": "object",
-      "description": "Enterprise customer profile.",
+      "description": "Enterprise customer master record.",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "description": "CUST1001 format" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "phone": { "type": "string" },
         "address": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Inactive"] }
+        "city": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "email", "status"]
     },
     "Product": {
       "title": "Product",
       "type": "object",
-      "description": "Product catalog item.",
+      "description": "Product catalog with stock management.",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "description": "PROD1001 format" },
         "sku": { "type": "string" },
         "name": { "type": "string" },
-        "price": { "type": "number" },
-        "stock": { "type": "number" },
-        "category": { "type": "string" }
+        "unitPrice": { "type": "number" },
+        "availableStock": { "type": "number" },
+        "reorderLevel": { "type": "number" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["IN STOCK", "LOW STOCK"] }
       },
-      "required": ["id", "sku", "name", "price", "stock"]
+      "required": ["id", "name", "unitPrice", "availableStock"]
     },
     "SalesOrder": {
       "title": "SalesOrder",
       "type": "object",
       "description": "Sales document recording a customer's purchase.",
       "properties": {
-        "id": { "type": "string" },
+        "id": { "type": "string", "description": "SO1001 format" },
         "customerId": { "type": "string" },
         "customerName": { "type": "string" },
         "orderDate": { "type": "string", "format": "date-time" },
+        "requestedDeliveryDate": { "type": "string", "format": "date-time" },
         "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["Draft", "Confirmed", "Shipped", "Delivered", "Cancelled"] }
+        "status": { "type": "string", "enum": ["NEW", "CONFIRMED", "PROCESSING", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELLED"] }
       },
       "required": ["id", "customerId", "orderDate", "totalAmount", "status"]
     },
     "OrderItem": {
       "title": "OrderItem",
       "type": "object",
-      "description": "Individual items within a sales order.",
+      "description": "Individual line items within a sales order.",
       "properties": {
         "id": { "type": "string" },
-        "orderId": { "type": "string" },
+        "salesOrderId": { "type": "string" },
         "productId": { "type": "string" },
         "productName": { "type": "string" },
         "quantity": { "type": "number" },
-        "unitPrice": { "type": "number" }
+        "unitPrice": { "type": "number" },
+        "totalPrice": { "type": "number" }
       },
-      "required": ["id", "orderId", "productId", "quantity"]
+      "required": ["id", "salesOrderId", "productId", "quantity"]
     },
     "Delivery": {
       "title": "Delivery",
       "type": "object",
       "description": "Logistics document for order fulfillment.",
       "properties": {
-        "id": { "type": "string" },
-        "orderId": { "type": "string" },
-        "deliveryDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Pending", "In Transit", "Delivered", "Returned"] },
-        "carrier": { "type": "string" },
-        "trackingNumber": { "type": "string" }
+        "id": { "type": "string", "description": "DEL1001 format" },
+        "salesOrderId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "expectedDeliveryDate": { "type": "string", "format": "date-time" },
+        "actualDeliveryDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] }
       },
-      "required": ["id", "orderId", "status"]
+      "required": ["id", "salesOrderId", "status"]
     },
     "Shipment": {
       "title": "Shipment",
       "type": "object",
-      "description": "Consolidated transport groupings.",
+      "description": "Transport grouping for bulk fulfillment.",
       "properties": {
-        "id": { "type": "string" },
-        "departureDate": { "type": "string", "format": "date-time" },
-        "arrivalDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Planned", "Loaded", "Departed", "Arrived"] },
-        "vehicleId": { "type": "string" }
+        "id": { "type": "string", "description": "SHIP1001 format" },
+        "deliveryId": { "type": "string" },
+        "salesOrderId": { "type": "string" },
+        "carrier": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "status": { "type": "string", "enum": ["READY", "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"] }
       },
-      "required": ["id", "status"]
+      "required": ["id", "deliveryId", "status"]
     }
   },
   "auth": {
@@ -103,15 +111,15 @@
   "firestore": {
     "users": {
       "schema": { "$ref": "#/backend/entities/User" },
-      "description": "System user profiles."
+      "description": "User profiles with roles."
     },
     "customers": {
       "schema": { "$ref": "#/backend/entities/Customer" },
-      "description": "Global customer records."
+      "description": "Customer master records."
     },
     "products": {
       "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "Product master data."
+      "description": "Product catalog records."
     },
     "salesOrders": {
       "schema": { "$ref": "#/backend/entities/SalesOrder" },
@@ -119,15 +127,15 @@
     },
     "orderItems": {
       "schema": { "$ref": "#/backend/entities/OrderItem" },
-      "description": "Detailed order items."
+      "description": "Sales order line items."
     },
     "deliveries": {
       "schema": { "$ref": "#/backend/entities/Delivery" },
-      "description": "Logistics delivery tracking."
+      "description": "Order fulfillment records."
     },
     "shipments": {
       "schema": { "$ref": "#/backend/entities/Shipment" },
-      "description": "Consolidated shipments."
+      "description": "Logistics shipment records."
     }
   }
 }

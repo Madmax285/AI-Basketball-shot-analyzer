@@ -15,7 +15,9 @@ import {
   Globe, 
   Settings,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Search,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,8 @@ const navItems = [
   { href: "/sales-orders", label: "Sales Orders", icon: ShoppingCart },
   { href: "/deliveries", label: "Deliveries", icon: Truck },
   { href: "/shipments", label: "Shipments", icon: Ship },
+  { href: "/tracking", label: "Delivery Tracking", icon: Search },
+  { href: "/reports", label: "Reports", icon: FileText },
 ];
 
 export function NavSidebar() {
@@ -43,7 +47,7 @@ export function NavSidebar() {
 
   return (
     <aside className="w-64 border-r bg-slate-900 text-slate-300 h-screen sticky top-0 flex flex-col">
-      <div className="p-6 flex-1">
+      <div className="p-6 flex-1 overflow-y-auto">
         <div className="flex items-center gap-2 mb-8 px-2">
           <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg">
             <Globe className="h-6 w-6 text-white" />
@@ -75,14 +79,14 @@ export function NavSidebar() {
       <div className="p-4 border-t border-slate-800 bg-slate-950/50 space-y-4">
         {user && (
           <div className="flex items-center gap-3 px-2">
-            <Avatar className="h-8 w-8 bg-slate-800">
-              <AvatarFallback className="text-[10px] font-bold">
+            <Avatar className="h-8 w-8 bg-slate-800 border border-slate-700">
+              <AvatarFallback className="text-[10px] font-bold text-slate-300">
                 {user.email?.charAt(0).toUpperCase() || <UserIcon className="h-4 w-4" />}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">{user.email}</p>
-              <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Enterprise User</p>
+              <p className="text-[10px] text-blue-400 uppercase font-black tracking-widest">Enterprise User</p>
             </div>
           </div>
         )}
@@ -91,23 +95,23 @@ export function NavSidebar() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-800"
+            className="justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-800 h-8"
           >
             <Settings className="h-4 w-4" />
-            <span className="text-xs">System Settings</span>
+            <span className="text-xs font-medium">Settings</span>
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={handleLogout}
-            className="justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10"
+            className="justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 h-8"
           >
             <LogOut className="h-4 w-4" />
-            <span className="text-xs">Sign Out</span>
+            <span className="text-xs font-medium">Sign Out</span>
           </Button>
         </div>
         
-        <p className="text-[10px] text-slate-600 text-center pt-2 uppercase tracking-widest font-bold">
+        <p className="text-[10px] text-slate-600 text-center pt-2 uppercase tracking-widest font-black">
           ERP Prototyper v1.0
         </p>
       </div>

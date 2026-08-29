@@ -2,9 +2,56 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow authenticated users to read and write all collections
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Helper function to check roles
+    function hasRole(role) {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function isAdmin() {
+      return hasRole('ADMIN');
+    }
+    
+    function isSales() {
+      return hasRole('SALES_USER') || isAdmin();
+    }
+    
+    function isLogistics() {
+      return hasRole('LOGISTICS_USER') || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read: if request.auth != null;
+      allow write: if isSales();
+    }
+
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow write: if isSales() || isLogistics();
+    }
+
+    match /salesOrders/{orderId} {
+      allow read: if request.auth != null;
+      allow write: if isSales();
+    }
+    
+    match /orderItems/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if isSales();
+    }
+
+    match /deliveries/{deliveryId} {
+      allow read: if request.auth != null;
+      allow write: if isLogistics();
+    }
+
+    match /shipments/{shipmentId} {
+      allow read: if request.auth != null;
+      allow write: if isLogistics();
     }
   }
 }
