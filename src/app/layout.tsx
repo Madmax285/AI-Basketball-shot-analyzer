@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LayoutShell } from '@/components/layout-shell';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'VolunteerBridge — AI-powered volunteer coordination',
@@ -21,7 +22,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <LayoutShell>{children}</LayoutShell>
+        <FirebaseClientProvider>
+          <LayoutShell>{children}</LayoutShell>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

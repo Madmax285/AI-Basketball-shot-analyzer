@@ -1,27 +1,33 @@
 
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
-import { useToast } from "@/hooks/use-toast";
-import { DEFAULT_SKILLS, saveVolunteer } from "@/lib/store";
-import { Skill } from "@/lib/types";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useFirestore, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { useToast } from '@/hooks/use-toast';
+
+const DEFAULT_SKILLS = ['Medical', 'Teaching', 'Rescue', 'Tech', 'Logistics', 'Environment', 'Arts', 'Community'];
 
 export default function RegisterVolunteer() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+  
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [availability, setAvailability] = useState([10]);
-  const [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
-  const toggleSkill = (skill: Skill) => {
+  const toggleSkill = (skill: string) => {
     setSelectedSkills(prev => 
       prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
     );
@@ -29,6 +35,8 @@ export default function RegisterVolunteer() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
     if (!name || !location || selectedSkills.length === 0) {
       toast({
         variant: "destructive",
@@ -38,16 +46,19 @@ export default function RegisterVolunteer() {
       return;
     }
 
-    saveVolunteer({
+    const volunteerRef = doc(firestore, 'volunteers', user.uid);
+    setDocumentNonBlocking(volunteerRef, {
+      id: user.uid,
       name,
       location,
-      availability: availability[0],
-      skills: selectedSkills
-    });
+      availabilityHoursPerWeek: availability[0],
+      skills: selectedSkills,
+      trustScore: 100,
+    }, { merge: true });
 
     toast({
-      title: "Success!",
-      description: "Volunteer registered successfully. Redirecting..."
+      title: "Profile Saved!",
+      description: "Your volunteer profile is now active."
     });
 
     setTimeout(() => router.push("/"), 1500);
@@ -56,25 +67,25 @@ export default function RegisterVolunteer() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Join the Bridge</h1>
-        <p className="text-muted-foreground">Register your profile to start matching with missions that need your skills.</p>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Volunteer Profile</h1>
+        <p className="text-muted-foreground">Define your skills and availability to help the community.</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Profile Details</CardTitle>
-            <CardDescription>Tell us about yourself and how you want to contribute.</CardDescription>
+            <CardTitle>Registration Details</CardTitle>
+            <CardDescription>Your information will be used to match you with appropriate missions.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Jane Smith" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">City / Location</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. London" />
+              <Label htmlFor="location">City / District</Label>
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Brooklyn" />
             </div>
 
             <div className="space-y-4">
@@ -88,7 +99,7 @@ export default function RegisterVolunteer() {
             </div>
 
             <div className="space-y-3">
-              <Label>Skills & Expertise</Label>
+              <Label>Expertise Areas</Label>
               <div className="grid grid-cols-2 gap-4">
                 {DEFAULT_SKILLS.map((skill) => (
                   <div key={skill} className="flex items-center space-x-2">
@@ -106,8 +117,8 @@ export default function RegisterVolunteer() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90">
-              Register Volunteer Profile
+            <Button type="submit" className="w-full h-11">
+              Update Profile
             </Button>
           </CardFooter>
         </Card>

@@ -1,26 +1,27 @@
 
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { getStoredData } from "@/lib/store";
-import { Mission, Volunteer } from "@/lib/types";
-import { Users, Rocket, CheckCircle2, TrendingUp, Star } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, Rocket, CheckCircle2, Star } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 export default function Dashboard() {
-  const [data, setData] = useState<{ volunteers: Volunteer[], missions: Mission[] }>({ volunteers: [], missions: [] });
+  const firestore = useFirestore();
+  
+  const volunteersQuery = useMemoFirebase(() => collection(firestore, 'volunteers'), [firestore]);
+  const missionsQuery = useMemoFirebase(() => collection(firestore, 'missions'), [firestore]);
+  
+  const { data: volunteers } = useCollection(volunteersQuery);
+  const { data: missions } = useCollection(missionsQuery);
 
-  useEffect(() => {
-    setData(getStoredData());
-  }, []);
-
-  const totalVolunteers = data.volunteers.length;
-  const totalMissions = data.missions.length;
-  const completedMissions = data.missions.filter(m => m.completed).length;
+  const totalVolunteers = volunteers?.length || 0;
+  const totalMissions = missions?.length || 0;
+  const completedMissions = missions?.filter(m => m.status === 'Completed').length || 0;
   const activeMissions = totalMissions - completedMissions;
   const averageTrustScore = totalVolunteers > 0 
-    ? Math.round(data.volunteers.reduce((acc, v) => acc + (v.trustScore || 0), 0) / totalVolunteers) 
+    ? Math.round((volunteers?.reduce((acc, v) => acc + (v.trustScore || 0), 0) || 0) / totalVolunteers) 
     : 0;
 
   const chartData = [
@@ -29,9 +30,9 @@ export default function Dashboard() {
     { name: "Completed", value: completedMissions, color: "hsl(var(--chart-3))" },
   ];
 
-  const skillDistribution = Array.from(new Set(data.volunteers.flatMap(v => v.skills))).map(skill => ({
+  const skillDistribution = Array.from(new Set(volunteers?.flatMap(v => v.skills) || [])).map(skill => ({
     name: skill,
-    value: data.volunteers.filter(v => v.skills.includes(skill)).length
+    value: volunteers?.filter(v => v.skills.includes(skill)).length || 0
   })).sort((a, b) => b.value - a.value);
 
   const stats = [
@@ -45,12 +46,15 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Real-time overview of community impact and readiness.</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Platform Analytics</h1>
+          <p className="text-muted-foreground">Real-time data synchronized across the coordination network.</p>
         </div>
         <div className="bg-primary/10 px-4 py-2 rounded-lg border border-primary/20">
-          <p className="text-xs font-bold text-primary uppercase tracking-wider">Platform Status</p>
-          <p className="text-sm font-semibold">Ready for Deployment</p>
+          <p className="text-xs font-bold text-primary uppercase tracking-wider">System Status</p>
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            Connected to Firestore
+          </p>
         </div>
       </div>
 
@@ -71,8 +75,8 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Impact Metrics</CardTitle>
-            <CardDescription>Visualizing volunteer capacity vs mission demands</CardDescription>
+            <CardTitle>Impact Overview</CardTitle>
+            <CardDescription>Visualizing capacity and historical mission data</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
