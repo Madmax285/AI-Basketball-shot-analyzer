@@ -6,7 +6,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Video, X, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import { Upload, Video, X, Loader2, Info, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
@@ -37,13 +37,16 @@ export default function UploadPage() {
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const selectedFile = e.dataTransfer.files[0];
-      if (selectedFile.type.startsWith('video/')) {
+      const isVideo = selectedFile.type.startsWith('video/');
+      const isJpg = selectedFile.type === 'image/jpeg' || selectedFile.name.toLowerCase().endsWith('.jpg') || selectedFile.name.toLowerCase().endsWith('.jpeg');
+      
+      if (isVideo || isJpg) {
         setFile(selectedFile);
       } else {
         toast({
           variant: "destructive",
           title: "Invalid file type",
-          description: "Please upload a basketball shooting video (MP4, MOV, etc.)"
+          description: "Please upload a shooting video (MP4, MOV) or a JPG photo."
         });
       }
     }
@@ -51,7 +54,19 @@ export default function UploadPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      const isVideo = selectedFile.type.startsWith('video/');
+      const isJpg = selectedFile.type === 'image/jpeg' || selectedFile.name.toLowerCase().endsWith('.jpg') || selectedFile.name.toLowerCase().endsWith('.jpeg');
+      
+      if (isVideo || isJpg) {
+        setFile(selectedFile);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid file type",
+          description: "Please upload a shooting video (MP4, MOV) or a JPG photo."
+        });
+      }
     }
   };
 
@@ -60,16 +75,12 @@ export default function UploadPage() {
 
     setIsUploading(true);
     
-    // Simulate Video Processing & Analysis for Portfolio Prototype
     try {
       const sessionId = crypto.randomUUID();
       const sessionRef = doc(firestore, 'analysisSessions', sessionId);
       
-      // In a real app, this would be a POST to the FastAPI backend
-      // and we would wait for a webhook or poll status.
-      // For the portfolio MVP, we simulate the completion of the background task.
-      
       const mockScore = 75 + Math.floor(Math.random() * 20);
+      const isImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg');
       
       await setDoc(sessionRef, {
         id: sessionId,
@@ -78,11 +89,11 @@ export default function UploadPage() {
         createdAt: new Date().toISOString(),
         status: 'completed',
         overallScore: mockScore,
-        processedVideoUrl: 'https://picsum.photos/seed/basketball/1200/600', // Placeholder
-        duration: 5.4
+        processedVideoUrl: isImage ? 'https://picsum.photos/seed/basketball-still/1200/800' : 'https://picsum.photos/seed/basketball/1200/600',
+        duration: isImage ? 0 : 5.4,
+        type: isImage ? 'image' : 'video'
       });
 
-      // Create mock shot results
       const shotId = crypto.randomUUID();
       await setDoc(doc(firestore, 'shotResults', shotId), {
         id: shotId,
@@ -93,7 +104,7 @@ export default function UploadPage() {
         upperBodyScore: mockScore + 3,
         alignmentScore: mockScore - 2,
         releaseScore: mockScore + 5,
-        consistencyScore: 90,
+        consistencyScore: isImage ? 100 : 90,
         metrics: {
           max_knee_flexion: 112.5,
           release_elbow_angle: 168.2,
@@ -103,7 +114,7 @@ export default function UploadPage() {
 
       toast({
         title: "Analysis Complete",
-        description: "Video processed. Results are ready.",
+        description: `${isImage ? 'Photo' : 'Video'} processed. Results are ready.`,
       });
 
       router.push(`/analysis/${sessionId}`);
@@ -111,19 +122,21 @@ export default function UploadPage() {
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: "There was an error processing your video."
+        description: "There was an error processing your file."
       });
     } finally {
       setIsUploading(false);
     }
   };
 
+  const isImage = file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg'));
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20">
       <div>
         <h1 className="text-4xl font-black tracking-tight text-slate-900">Analyze Shot</h1>
         <p className="text-muted-foreground mt-2 text-lg font-medium">
-          Upload a clear side-view or 45-degree video of your shooting form.
+          Upload a clear side-view video or JPG photo of your shooting form.
         </p>
       </div>
 
@@ -154,15 +167,15 @@ export default function UploadPage() {
               <div className="h-24 w-24 rounded-3xl bg-orange-100 flex items-center justify-center text-orange-600 mb-6 shadow-inner">
                 <Video className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 mb-2">Drag and drop shooting video</h3>
-              <p className="text-slate-400 font-bold text-sm mb-8 uppercase tracking-widest">MP4, MOV up to 50MB</p>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Drag and drop shooting video or photo</h3>
+              <p className="text-slate-400 font-bold text-sm mb-8 uppercase tracking-widest">MP4, MOV or JPG up to 50MB</p>
               
               <div className="relative">
                 <input
                   type="file"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   onChange={handleFileChange}
-                  accept="video/*"
+                  accept="video/*,image/jpeg"
                 />
                 <Button variant="outline" className="border-2 font-bold px-8 h-12 rounded-2xl">
                   Select File
@@ -174,7 +187,7 @@ export default function UploadPage() {
               <div className="bg-slate-50 p-6 rounded-[1.5rem] border border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-orange-600 p-3 rounded-2xl shadow-lg">
-                    <Video className="h-6 w-6 text-white" />
+                    {isImage ? <ImageIcon className="h-6 w-6 text-white" /> : <Video className="h-6 w-6 text-white" />}
                   </div>
                   <div>
                     <p className="font-black text-slate-900 truncate max-w-[200px] md:max-w-md">{file.name}</p>
@@ -213,10 +226,10 @@ export default function UploadPage() {
             {isUploading ? (
               <>
                 <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                Processing Shot...
+                Processing...
               </>
             ) : (
-              "Start AI Analysis"
+              `Start AI ${isImage ? 'Photo' : 'Shot'} Analysis`
             )}
           </Button>
         </CardFooter>

@@ -25,7 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory session store (move to DB in Phase 11)
+# In-memory session store
 analysis_sessions = {}
 
 @app.get("/api/health")
@@ -34,8 +34,9 @@ async def health_check():
 
 @app.post("/api/analyze")
 async def analyze_video(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    if not file.filename.endswith(('.mp4', '.mov', '.avi')):
-        raise HTTPException(status_code=400, detail="Unsupported video format")
+    # Support both video and image (jpg) formats
+    if not file.filename.lower().endswith(('.mp4', '.mov', '.avi', '.jpg', '.jpeg')):
+        raise HTTPException(status_code=400, detail="Unsupported file format. Please upload MP4, MOV, or JPG.")
         
     session_id = str(uuid.uuid4())
     file_path = os.path.join(settings.UPLOAD_DIR, f"{session_id}_{file.filename}")
@@ -47,7 +48,8 @@ async def analyze_video(background_tasks: BackgroundTasks, file: UploadFile = Fi
     analysis_sessions[session_id] = {
         "id": session_id,
         "status": "processing",
-        "filename": file.filename
+        "filename": file.filename,
+        "is_image": file.filename.lower().endswith(('.jpg', '.jpeg'))
     }
     
     # Start background processing pipeline
@@ -67,14 +69,32 @@ def run_analysis_pipeline(session_id: str, video_path: str):
     """
     try:
         logger.info(f"Starting analysis for session: {session_id}")
+        is_image = video_path.lower().endswith(('.jpg', '.jpeg'))
         
         # 1. Pose Detection
+        # PoseDetector.process_video handles single images as 1-frame sequences
         detector = PoseDetector(min_detection_confidence=settings.POSE_CONFIDENCE_THRESHOLD)
         pose_history = detector.process_video(video_path, sample_rate=settings.PROCESS_EVERY_N_FRAMES)
         
-        # 2. Shot Segmentation
+        # 2. Shot/Pose Segmentation
         shot_detector = ShotDetector()
-        shots = shot_detector.detect_shots(pose_history)
+        
+        if is_image:
+            # For images, we treat the single frame as the 'release' point for analysis
+            shots = [{
+                "shot_id": 1,
+                "start_frame": 0,
+                "end_frame": 0,
+                "phases": {
+                    "preparation": 0,
+                    "loading": 0,
+                    "takeoff": 0,
+                    "release": 0,
+                    "landing": 0
+                }
+            }]
+        else:
+            shots = shot_detector.detect_shots(pose_history)
         
         results = []
         if shots:
@@ -106,7 +126,7 @@ def run_analysis_pipeline(session_id: str, video_path: str):
         else:
             analysis_sessions[session_id].update({
                 "status": "failed",
-                "error": "No clear shooting motion detected."
+                "error": "No clear shooting motion or pose detected."
             })
             
     except Exception as e:
