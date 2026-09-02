@@ -1,82 +1,91 @@
+
 from typing import List, Dict, Any, Optional
 import numpy as np
 
 class ShotDetector:
     """
-    Analyzes pose history to detect shooting motions and segment phases.
+    Analyzes pose history to detect multiple shooting motions and segment phases.
     """
     def __init__(self, fps: float = 30.0):
         self.fps = fps
         self.vertical_threshold = 0.02
-        self.knee_flexion_threshold = 150.0
+        self.min_frames_between_shots = 45 # 1.5 seconds at 30fps
         
     def detect_shots(self, pose_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Identifies shot attempts in a sequence of pose data.
-        Returns a list of shot metadata including phase frame indices.
+        Identifies multiple shot attempts in a sequence of pose data.
         """
         if not pose_history or len(pose_history) < 15:
             return []
             
-        # Extract vertical movement of key points (hips and wrists)
-        hip_y = []
         wrist_y = []
-        
         for frame in pose_history:
             lms = frame.get("landmarks", {})
-            if "right_hip" in lms and "left_hip" in lms:
-                hip_y.append((lms["right_hip"][1] + lms["left_hip"][1]) / 2)
-            else:
-                hip_y.append(None)
-                
             if "right_wrist" in lms:
                 wrist_y.append(lms["right_wrist"][1])
             else:
                 wrist_y.append(None)
         
-        # Simple heuristic for MVP:
-        # A shot usually consists of a "dip" (loading) followed by a peak (release)
-        # For now, we segment the entire video as one shot if motion is detected
-        
+        # Simple peak detection for multiple shots
+        # A shot is detected when the wrist moves above a certain height
         shots = []
-        if any(h is not None for h in hip_y):
-            # Find phase frame indices
-            phases = self._segment_phases(pose_history, hip_y, wrist_y)
-            
-            shot = {
+        last_shot_frame = -self.min_frames_between_shots
+        
+        # Detect peaks in wrist height (low Y value is high physical position)
+        for i in range(5, len(wrist_y) - 5):
+            curr_y = wrist_y[i]
+            if curr_y is not None and curr_y < 0.4: # Simple height threshold
+                # Check if it's a local minimum (peak height)
+                is_peak = all(wrist_y[j] is None or curr_y <= wrist_y[j] for j in range(i-5, i+6))
+                
+                if is_peak and (i - last_shot_frame) > self.min_frames_between_shots:
+                    shot_id = len(shots) + 1
+                    start_frame = max(0, i - 30)
+                    end_frame = min(len(pose_history) - 1, i + 15)
+                    
+                    # Estimate phases for this segment
+                    phases = self._segment_phases(pose_history[start_frame:end_frame+1])
+                    
+                    shots.append({
+                        "shot_id": shot_id,
+                        "start_frame": start_frame,
+                        "end_frame": end_frame,
+                        "timestamp": pose_history[i]["timestamp"],
+                        "phases": phases
+                    })
+                    last_shot_frame = i
+        
+        # Fallback to single shot if none detected by peak but movement exists
+        if not shots and any(y is not None for y in wrist_y):
+            shots.append({
                 "shot_id": 1,
-                "start_frame": pose_history[0]["frame"],
-                "end_frame": pose_history[-1]["frame"],
-                "phases": phases
-            }
-            shots.append(shot)
+                "start_frame": 0,
+                "end_frame": len(pose_history) - 1,
+                "timestamp": pose_history[int(len(pose_history)/2)]["timestamp"],
+                "phases": self._segment_phases(pose_history)
+            })
             
         return shots
 
-    def _segment_phases(self, pose_history: List[Dict[str, Any]], hip_y: list, wrist_y: list) -> Dict[str, int]:
+    def _segment_phases(self, segment: List[Dict[str, Any]]) -> Dict[str, int]:
         """
-        Heuristic approximation of shooting phases based on movement.
+        Heuristic approximation of shooting phases within a local segment.
         """
-        frames = [f["frame"] for f in pose_history]
+        frames = [f["frame"] for f in segment]
         
-        # Loading: Lowest point of hips
-        valid_hips = [(i, y) for i, y in enumerate(hip_y) if y is not None]
-        if valid_hips:
-            loading_idx = max(valid_hips, key=lambda x: x[1])[0] # Max Y is lowest in image coords
-        else:
-            loading_idx = int(len(frames) * 0.3)
-            
-        # Release: Peak of wrist height during upward motion
-        valid_wrists = [(i, y) for i, y in enumerate(wrist_y) if y is not None and i > loading_idx]
-        if valid_wrists:
-            release_idx = min(valid_wrists, key=lambda x: x[1])[0] # Min Y is highest
-        else:
-            release_idx = int(len(frames) * 0.7)
-            
+        # Release: Peak of wrist height
+        wrist_vals = []
+        for f in segment:
+            lms = f.get("landmarks", {})
+            y = lms.get("right_wrist", [None, 1])[1]
+            wrist_vals.append(y)
+        
+        release_idx = wrist_vals.index(min(wrist_vals))
+        
         return {
             "preparation": frames[0],
-            "loading": frames[loading_idx],
-            "takeoff": frames[int((loading_idx + release_idx) / 2)],
+            "loading": frames[max(0, release_idx - 10)],
+            "takeoff": frames[max(0, release_idx - 5)],
             "release": frames[release_idx],
             "landing": frames[-1]
         }
