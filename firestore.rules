@@ -2,65 +2,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check roles
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
+    // Basketball AI Analyzer Collections
     
-    function hasRole(role) {
-      return request.auth != null && getUserData().role == role;
-    }
-    
-    function isAdmin() {
-      return hasRole('ADMIN');
-    }
-    
-    function isSales() {
-      return hasRole('SALES_USER') || isAdmin();
-    }
-    
-    function isLogistics() {
-      return hasRole('LOGISTICS_USER') || isAdmin();
+    // Allow public read/write for analysis sessions
+    match /analysisSessions/{sessionId} {
+      allow read, write: if true;
     }
 
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId || isAdmin();
+    // Allow public read/write for individual shot results
+    match /shotResults/{shotId} {
+      allow read, write: if true;
     }
 
-    match /customers/{customerId} {
-      allow read: if request.auth != null;
-      allow write: if isSales();
+    // Allow public read/write for form issues/recommendations
+    match /formIssues/{issueId} {
+      allow read, write: if true;
     }
 
-    match /products/{productId} {
-      allow read: if request.auth != null;
-      allow write: if isSales() || isLogistics();
-    }
-
-    match /salesOrders/{orderId} {
-      allow read: if request.auth != null;
-      allow write: if isSales();
-    }
-    
-    match /orderItems/{itemId} {
-      allow read: if request.auth != null;
-      allow write: if isSales();
-    }
-
-    match /deliveries/{deliveryId} {
-      allow read: if request.auth != null;
-      allow write: if isLogistics();
-    }
-
-    match /shipments/{shipmentId} {
-      allow read: if request.auth != null;
-      allow write: if isLogistics();
-    }
-
-    // Rules for the system metadata collection used by seeding
+    // Rules for system metadata (e.g., used for state or initialization)
     match /system/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
+    }
+    
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
