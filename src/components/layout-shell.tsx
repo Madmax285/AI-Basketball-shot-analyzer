@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { NavSidebar } from "@/components/nav-sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { Trophy, Activity } from 'lucide-react';
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -15,26 +16,33 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
   useEffect(() => {
+    // Basic redirect logic - in a portfolio we might want to allow some public access
+    // but here we follow the standard auth shell pattern
     if (!isUserLoading && !user && !isAuthPage) {
       router.replace('/login');
-    } else if (!isUserLoading && user && isAuthPage) {
-      router.replace('/');
     }
   }, [user, isUserLoading, isAuthPage, router]);
 
   if (isUserLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="text-sm font-medium text-slate-500 animate-pulse">Initializing ERP Services...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="h-20 w-20 rounded-[2rem] bg-orange-600 animate-bounce shadow-2xl shadow-orange-500/50 flex items-center justify-center">
+              <Trophy className="h-10 w-10 text-white" />
+            </div>
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-12 h-2 bg-black/20 blur-md rounded-full" />
+          </div>
+          <div className="flex flex-col items-center">
+            <p className="text-lg font-black text-white uppercase tracking-[0.3em]">Basketball AI</p>
+            <div className="flex items-center gap-2 mt-2">
+              <Activity className="h-3 w-3 text-orange-500 animate-pulse" />
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Loading Analytics Engine</p>
+            </div>
+          </div>
         </div>
       </div>
     );
-  }
-
-  if (!user && !isAuthPage) {
-    return null; // Don't render shell if redirecting
   }
 
   if (isAuthPage) {
@@ -44,8 +52,8 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <NavSidebar />
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <main className="flex-1 overflow-y-auto max-h-screen">
+        <div className="container mx-auto px-8 py-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
           {children}
         </div>
       </main>

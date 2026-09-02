@@ -1,141 +1,72 @@
 
 {
   "entities": {
-    "User": {
-      "title": "User",
+    "AnalysisSession": {
+      "title": "AnalysisSession",
       "type": "object",
-      "description": "System user profile with role-based permissions.",
+      "description": "A video analysis session for a basketball player.",
       "properties": {
         "id": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["ADMIN", "SALES_USER", "LOGISTICS_USER"] }
+        "filename": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "duration": { "type": "number" },
+        "status": { "type": "string", "enum": ["processing", "completed", "failed"] },
+        "overallScore": { "type": "number" },
+        "processedVideoUrl": { "type": "string" },
+        "userId": { "type": "string" }
       },
-      "required": ["id", "email", "role"]
+      "required": ["id", "filename", "status", "userId"]
     },
-    "Customer": {
-      "title": "Customer",
+    "ShotResult": {
+      "title": "ShotResult",
       "type": "object",
-      "description": "Enterprise customer master record.",
-      "properties": {
-        "id": { "type": "string", "description": "CUST1001 format" },
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
-        "address": { "type": "string" },
-        "city": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Inactive"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "name", "email", "status"]
-    },
-    "Product": {
-      "title": "Product",
-      "type": "object",
-      "description": "Product catalog with stock management.",
-      "properties": {
-        "id": { "type": "string", "description": "PROD1001 format" },
-        "sku": { "type": "string" },
-        "name": { "type": "string" },
-        "unitPrice": { "type": "number" },
-        "availableStock": { "type": "number" },
-        "reorderLevel": { "type": "number" },
-        "category": { "type": "string" },
-        "status": { "type": "string", "enum": ["IN STOCK", "LOW STOCK"] }
-      },
-      "required": ["id", "name", "unitPrice", "availableStock"]
-    },
-    "SalesOrder": {
-      "title": "SalesOrder",
-      "type": "object",
-      "description": "Sales document recording a customer's purchase.",
-      "properties": {
-        "id": { "type": "string", "description": "SO1001 format" },
-        "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "orderDate": { "type": "string", "format": "date-time" },
-        "requestedDeliveryDate": { "type": "string", "format": "date-time" },
-        "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["NEW", "CONFIRMED", "PROCESSING", "PARTIALLY_DELIVERED", "COMPLETED", "CANCELLED"] }
-      },
-      "required": ["id", "customerId", "orderDate", "totalAmount", "status"]
-    },
-    "OrderItem": {
-      "title": "OrderItem",
-      "type": "object",
-      "description": "Individual line items within a sales order.",
+      "description": "Detailed mechanics for an individual shot detected in a session.",
       "properties": {
         "id": { "type": "string" },
-        "salesOrderId": { "type": "string" },
-        "productId": { "type": "string" },
-        "productName": { "type": "string" },
-        "quantity": { "type": "number" },
-        "unitPrice": { "type": "number" },
-        "totalPrice": { "type": "number" }
+        "sessionId": { "type": "string" },
+        "shotNumber": { "type": "number" },
+        "overallScore": { "type": "number" },
+        "lowerBodyScore": { "type": "number" },
+        "upperBodyScore": { "type": "number" },
+        "alignmentScore": { "type": "number" },
+        "releaseScore": { "type": "number" },
+        "consistencyScore": { "type": "number" },
+        "metrics": { "type": "object" },
+        "phases": { "type": "object" }
       },
-      "required": ["id", "salesOrderId", "productId", "quantity"]
+      "required": ["id", "sessionId", "shotNumber"]
     },
-    "Delivery": {
-      "title": "Delivery",
+    "FormIssue": {
+      "title": "FormIssue",
       "type": "object",
-      "description": "Logistics document for order fulfillment.",
+      "description": "A specific form issue detected during a shot.",
       "properties": {
-        "id": { "type": "string", "description": "DEL1001 format" },
-        "salesOrderId": { "type": "string" },
-        "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "expectedDeliveryDate": { "type": "string", "format": "date-time" },
-        "actualDeliveryDate": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"] }
+        "id": { "type": "string" },
+        "shotId": { "type": "string" },
+        "issue": { "type": "string" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "metric": { "type": "string" },
+        "value": { "type": "number" },
+        "recommendation": { "type": "string" }
       },
-      "required": ["id", "salesOrderId", "status"]
-    },
-    "Shipment": {
-      "title": "Shipment",
-      "type": "object",
-      "description": "Transport grouping for bulk fulfillment.",
-      "properties": {
-        "id": { "type": "string", "description": "SHIP1001 format" },
-        "deliveryId": { "type": "string" },
-        "salesOrderId": { "type": "string" },
-        "carrier": { "type": "string" },
-        "trackingNumber": { "type": "string" },
-        "status": { "type": "string", "enum": ["READY", "PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"] }
-      },
-      "required": ["id", "deliveryId", "status"]
+      "required": ["id", "shotId", "issue", "severity", "recommendation"]
     }
   },
   "auth": {
     "providers": ["password"]
   },
   "firestore": {
-    "users": {
-      "schema": { "$ref": "#/backend/entities/User" },
-      "description": "User profiles with roles."
+    "analysisSessions": {
+      "schema": { "$ref": "#/backend/entities/AnalysisSession" },
+      "description": "User video analysis sessions."
     },
-    "customers": {
-      "schema": { "$ref": "#/backend/entities/Customer" },
-      "description": "Customer master records."
+    "shotResults": {
+      "schema": { "$ref": "#/backend/entities/ShotResult" },
+      "description": "Individual shot data points."
     },
-    "products": {
-      "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "Product catalog records."
-    },
-    "salesOrders": {
-      "schema": { "$ref": "#/backend/entities/SalesOrder" },
-      "description": "Transactional sales orders."
-    },
-    "orderItems": {
-      "schema": { "$ref": "#/backend/entities/OrderItem" },
-      "description": "Sales order line items."
-    },
-    "deliveries": {
-      "schema": { "$ref": "#/backend/entities/Delivery" },
-      "description": "Order fulfillment records."
-    },
-    "shipments": {
-      "schema": { "$ref": "#/backend/entities/Shipment" },
-      "description": "Logistics shipment records."
+    "formIssues": {
+      "schema": { "$ref": "#/backend/entities/FormIssue" },
+      "description": "Recommendations for players."
     }
   }
 }

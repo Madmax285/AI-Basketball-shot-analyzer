@@ -1,236 +1,194 @@
+
 'use client';
 
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  ShoppingBag, 
-  Users, 
-  Truck, 
-  Package, 
-  AlertCircle,
-  Clock,
-  CheckCircle2,
-  DollarSign,
-  TrendingUp
+  Play, 
+  Upload, 
+  TrendingUp, 
+  Award, 
+  Zap,
+  ChevronRight,
+  Activity,
+  History
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Badge } from '@/components/ui/badge';
-import { isDeliveryDelayed, getStatusColor, calculateDaysDelayed } from '@/lib/erp-logic';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
 export default function Dashboard() {
+  const { user } = useUser();
   const firestore = useFirestore();
   
-  const ordersQuery = useMemoFirebase(() => collection(firestore, 'salesOrders'), [firestore]);
-  const customersQuery = useMemoFirebase(() => collection(firestore, 'customers'), [firestore]);
-  const deliveriesQuery = useMemoFirebase(() => collection(firestore, 'deliveries'), [firestore]);
-  const productsQuery = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
-  
-  const { data: orders } = useCollection(ordersQuery);
-  const { data: customers } = useCollection(customersQuery);
-  const { data: deliveries } = useCollection(deliveriesQuery);
-  const { data: products } = useCollection(productsQuery);
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'analysisSessions'),
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+  }, [firestore, user]);
 
-  // Aggregations
-  const totalRevenue = orders?.reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0) || 0;
-  const pendingOrders = orders?.filter(o => ['NEW', 'CONFIRMED', 'PROCESSING'].includes(o.status)).length || 0;
-  const lowStockCount = products?.filter(p => p.availableStock <= p.reorderLevel).length || 0;
-  const totalStockValue = products?.reduce((acc, p) => acc + (p.availableStock * (p.unitPrice || 0)), 0) || 0;
-  
-  const delayedDeliveries = deliveries?.filter(d => 
-    d.expectedDeliveryDate && isDeliveryDelayed(d.expectedDeliveryDate, d.status)
-  ) || [];
+  const { data: sessions, isLoading } = useCollection(sessionsQuery);
 
-  const stats = [
-    { label: "Revenue", value: `$${totalRevenue.toLocaleString()}`, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50", link: "/reports" },
-    { label: "Customers", value: customers?.length || 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50", link: "/customers" },
-    { label: "Products", value: products?.length || 0, icon: Package, color: "text-indigo-600", bg: "bg-indigo-50", link: "/products" },
-    { label: "Exceptions", value: delayedDeliveries.length + lowStockCount, icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-50", link: "/reports" },
-  ];
+  const avgScore = sessions?.length 
+    ? Math.round(sessions.reduce((acc, s) => acc + (s.overallScore || 0), 0) / sessions.length) 
+    : 0;
 
-  // Prepare monthly sales chart data
-  const monthlyData = orders?.reduce((acc: any, order) => {
-    try {
-      const month = format(new Date(order.orderDate), 'MMM');
-      if (!acc[month]) acc[month] = 0;
-      acc[month] += (order.totalAmount || 0);
-    } catch (e) {
-      // Handle invalid dates
-    }
-    return acc;
-  }, {}) || {};
-
-  const chartData = Object.keys(monthlyData).map(month => ({
-    name: month,
-    value: monthlyData[month]
-  })).sort((a, b) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.indexOf(a.name) - months.indexOf(b.name);
-  });
+  const chartData = sessions?.map(s => ({
+    date: format(new Date(s.createdAt), 'MMM d'),
+    score: s.overallScore
+  })).reverse() || [];
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10 basketball-grid min-h-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Enterprise Overview</h1>
-          <p className="text-muted-foreground mt-1 text-sm font-medium">Real-time Sales and Distribution Metrics</p>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900">Training Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-base font-medium flex items-center gap-2">
+            <Activity className="h-4 w-4 text-orange-500" />
+            Performance insights powered by computer vision.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-            System Live
-          </Badge>
+        <div className="flex items-center gap-3">
+          <Link href="/upload">
+            <Button className="bg-orange-600 hover:bg-orange-700 h-12 px-8 rounded-2xl shadow-lg shadow-orange-200 gap-2 font-bold text-base">
+              <Upload className="h-5 w-5" />
+              New Analysis
+            </Button>
+          </Link>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Link href={stat.link} key={stat.label}>
-            <Card className="border-none shadow-sm overflow-hidden transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer bg-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black text-slate-900">{stat.value}</div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-500">Avg Form Score</CardTitle>
+            <Award className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-slate-900">{avgScore}</div>
+            <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-tighter">Based on last {sessions?.length || 0} shots</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-500">Sessions</CardTitle>
+            <History className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-slate-900">{sessions?.length || 0}</div>
+            <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-tighter">Total videos analyzed</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-500">Focus Area</CardTitle>
+            <Zap className="h-5 w-5 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-black text-slate-900">Knee Flexion</div>
+            <p className="text-xs text-amber-600 font-bold mt-1 uppercase tracking-tighter">Improve loading depth</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-xl bg-slate-950 text-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-600/20 rounded-full -mr-16 -mt-16 blur-3xl" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Pro Comparison</CardTitle>
+            <TrendingUp className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-black text-white">Elite</div>
+            <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tighter">Top 15% of users</p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 border-none shadow-sm bg-white">
+        <Card className="md:col-span-4 border-none shadow-xl bg-white/80 backdrop-blur-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold">Revenue Trends</CardTitle>
-                <CardDescription>Monthly aggregated sales performance.</CardDescription>
-              </div>
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-            </div>
+            <CardTitle className="text-xl font-black">Score History</CardTitle>
+            <CardDescription className="font-medium">Tracking form improvement over time.</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] pt-4">
+          <CardContent className="h-[350px] pt-4">
             <ResponsiveContainer width="100%" height="100%">
               {chartData.length > 0 ? (
                 <AreaChart data={chartData}>
                   <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 700}} />
+                  <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 700}} />
                   <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
                   />
-                  <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                  <Area type="monotone" dataKey="score" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
                 </AreaChart>
               ) : (
-                <div className="h-full w-full flex items-center justify-center text-slate-400 font-medium italic">
-                  No sales data available. Initialize demo dataset.
+                <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-sm italic">
+                  Upload a video to see progress
                 </div>
               )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-3 border-none shadow-sm bg-white">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg font-bold">Inventory Summary</CardTitle>
-              {lowStockCount > 0 && <Badge variant="destructive" className="bg-red-600 text-[10px] font-black">{lowStockCount}</Badge>}
-            </div>
-            <CardDescription>Stock health and catalog valuation.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Stock Value</p>
-                <p className="text-xl font-black text-slate-900">${totalStockValue.toLocaleString()}</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total SKU</p>
-                <p className="text-xl font-black text-slate-900">{products?.length || 0}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Low Stock Alerts</h3>
-              {products?.filter(p => p.availableStock <= p.reorderLevel).slice(0, 3).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
-                  <div className="flex items-center gap-3">
-                    <Package className="h-4 w-4 text-amber-600" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">{p.name}</p>
-                      <p className="text-[9px] text-amber-700 font-black uppercase">{p.availableStock} Units Left</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-white border-amber-200 text-amber-700 text-[8px] font-black">REORDER</Badge>
-                </div>
-              ))}
-              {lowStockCount === 0 && <p className="text-xs text-slate-400 font-medium italic py-2">All inventory levels are healthy.</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-7 border-none shadow-sm bg-white overflow-hidden">
+        <Card className="md:col-span-3 border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-bold">Logistics Exceptions</CardTitle>
-              <CardDescription>Deliveries that require immediate coordination.</CardDescription>
+              <CardTitle className="text-xl font-black">Recent Sessions</CardTitle>
+              <CardDescription className="font-medium">Deep dive into your last shots.</CardDescription>
             </div>
-            <Link href="/reports">
-              <Button variant="ghost" className="text-xs font-bold text-blue-600 hover:text-blue-700">View Full Report</Button>
+            <Link href="/history">
+              <Button variant="ghost" className="text-xs font-bold text-orange-600 hover:text-orange-700 rounded-lg">View All</Button>
             </Link>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  <tr>
-                    <th className="px-6 py-4">Delivery ID</th>
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Expected Date</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Delay</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {delayedDeliveries.length > 0 ? (
-                    delayedDeliveries.slice(0, 5).map(d => (
-                      <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-6 py-4 font-bold text-blue-600 text-xs">#{d.id}</td>
-                        <td className="px-6 py-4 text-xs font-medium text-slate-900">{d.customerName}</td>
-                        <td className="px-6 py-4 text-xs text-slate-500">
-                          {d.expectedDeliveryDate ? format(new Date(d.expectedDeliveryDate), 'MMM dd, yyyy') : '--'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[8px] font-black uppercase">{d.status}</Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-rose-600 font-black text-xs">
-                            +{d.expectedDeliveryDate ? calculateDaysDelayed(d.expectedDeliveryDate) : 0} Days
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs font-medium italic">
-                        No logistics exceptions detected at this time.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="space-y-1">
+              {sessions?.length ? sessions.map((s, idx) => (
+                <Link href={`/analysis/${s.id}`} key={s.id}>
+                  <div className={cn(
+                    "flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group cursor-pointer",
+                    idx !== (sessions.length - 1) && "border-b border-slate-50"
+                  )}>
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300 shadow-inner">
+                        <Play className="h-5 w-5 text-slate-400 group-hover:text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 truncate max-w-[150px]">{s.filename}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{format(new Date(s.createdAt), 'MMM d, h:mm a')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-lg font-black text-slate-900 leading-none">{s.overallScore}</p>
+                        <p className="text-[9px] font-black uppercase text-orange-600 tracking-widest">Score</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                    </div>
+                  </div>
+                </Link>
+              )) : (
+                <div className="py-20 text-center space-y-4 px-6">
+                  <div className="bg-slate-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <Activity className="h-8 w-8 text-slate-200" />
+                  </div>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">No sessions found</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
