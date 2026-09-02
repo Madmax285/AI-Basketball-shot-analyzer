@@ -26,6 +26,7 @@ import {
   PolarRadiusAxis 
 } from 'recharts';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function BiometricsSuitePage() {
   const firestore = useFirestore();
