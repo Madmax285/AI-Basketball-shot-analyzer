@@ -4,7 +4,7 @@
     "AnalysisSession": {
       "title": "AnalysisSession",
       "type": "object",
-      "description": "A video analysis session for a basketball player.",
+      "description": "A comprehensive video analysis session.",
       "properties": {
         "id": { "type": "string" },
         "filename": { "type": "string" },
@@ -13,43 +13,44 @@
         "status": { "type": "string", "enum": ["processing", "completed", "failed"] },
         "overallScore": { "type": "number" },
         "processedVideoUrl": { "type": "string" },
-        "userId": { "type": "string" }
+        "userId": { "type": "string" },
+        "type": { "type": "string" }
       },
       "required": ["id", "filename", "status", "userId"]
     },
     "ShotResult": {
       "title": "ShotResult",
       "type": "object",
-      "description": "Detailed mechanics for an individual shot detected in a session.",
+      "description": "Detailed analysis for an individual action detected in a video.",
       "properties": {
         "id": { "type": "string" },
         "sessionId": { "type": "string" },
         "shotNumber": { "type": "number" },
+        "actionType": { "type": "string" },
+        "confidence": { "type": "number" },
+        "result": { "type": "string" },
+        "location": { "type": "string" },
+        "playStatus": { "type": "string" },
+        "timestamp": { "type": "number" },
         "overallScore": { "type": "number" },
-        "lowerBodyScore": { "type": "number" },
-        "upperBodyScore": { "type": "number" },
-        "alignmentScore": { "type": "number" },
-        "releaseScore": { "type": "number" },
-        "consistencyScore": { "type": "number" },
         "metrics": { "type": "object" },
-        "phases": { "type": "object" }
+        "foulAnalysis": { "type": "object" },
+        "violationAnalysis": { "type": "object" }
       },
-      "required": ["id", "sessionId", "shotNumber"]
+      "required": ["id", "sessionId", "shotNumber", "actionType"]
     },
-    "FormIssue": {
-      "title": "FormIssue",
+    "DetectedEvent": {
+      "title": "DetectedEvent",
       "type": "object",
-      "description": "A specific form issue detected during a shot.",
+      "description": "Specific temporal event on the video timeline.",
       "properties": {
         "id": { "type": "string" },
-        "shotId": { "type": "string" },
-        "issue": { "type": "string" },
-        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
-        "metric": { "type": "string" },
-        "value": { "type": "number" },
-        "recommendation": { "type": "string" }
-      },
-      "required": ["id", "shotId", "issue", "severity", "recommendation"]
+        "sessionId": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "eventType": { "type": "string" },
+        "label": { "type": "string" },
+        "confidence": { "type": "number" }
+      }
     }
   },
   "auth": {
@@ -58,15 +59,15 @@
   "firestore": {
     "analysisSessions": {
       "schema": { "$ref": "#/backend/entities/AnalysisSession" },
-      "description": "User video analysis sessions."
+      "description": "Video analysis session metadata."
     },
     "shotResults": {
       "schema": { "$ref": "#/backend/entities/ShotResult" },
-      "description": "Individual shot data points."
+      "description": "Individual shot/action data points."
     },
-    "formIssues": {
-      "schema": { "$ref": "#/backend/entities/FormIssue" },
-      "description": "Recommendations for players."
+    "detectedEvents": {
+      "schema": { "$ref": "#/backend/entities/DetectedEvent" },
+      "description": "Timeline events for interactive video control."
     }
   }
 }
