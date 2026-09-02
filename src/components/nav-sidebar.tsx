@@ -2,39 +2,27 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
-import { signOut } from 'firebase/auth';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Upload, 
   History, 
   Settings,
-  LogOut,
-  User as UserIcon,
   Activity,
-  Trophy
+  Trophy,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/upload", label: "Analyze Shot", icon: Upload },
-  { href: "/history", label: "Analysis History", icon: History },
+  { href: "/history", label: "Session History", icon: History },
 ];
 
 export function NavSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const auth = useAuth();
-  const { user } = useUser();
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.replace('/login');
-  };
 
   return (
     <aside className="w-64 border-r bg-slate-950 text-slate-300 h-screen sticky top-0 flex flex-col">
@@ -66,7 +54,7 @@ export function NavSidebar() {
           ))}
           
           <div className="pt-8 pb-2 px-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Advanced</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Analytics</p>
           </div>
           
           <Link
@@ -84,40 +72,23 @@ export function NavSidebar() {
         </nav>
       </div>
       
-      <div className="p-4 border-t border-slate-900 bg-black/40 space-y-4">
-        {user && (
-          <div className="flex items-center gap-3 px-2">
-            <Avatar className="h-9 w-9 bg-slate-800 border border-slate-700">
-              <AvatarFallback className="text-xs font-bold text-orange-500">
-                {user.email?.charAt(0).toUpperCase() || <UserIcon className="h-4 w-4" />}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{user.email}</p>
-              <p className="text-[10px] text-orange-600 uppercase font-black tracking-widest">Athlete</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-900 h-9 rounded-lg"
-          >
-            <Settings className="h-4 w-4" />
-            <span className="text-xs font-medium">Settings</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleLogout}
-            className="justify-start gap-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 h-9 rounded-lg"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="text-xs font-medium">Sign Out</span>
-          </Button>
-        </div>
+      <div className="p-4 border-t border-slate-900 bg-black/40 space-y-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-900 h-9 rounded-lg"
+        >
+          <Settings className="h-4 w-4" />
+          <span className="text-xs font-medium">System Config</span>
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="w-full justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-900 h-9 rounded-lg"
+        >
+          <Info className="h-4 w-4" />
+          <span className="text-xs font-medium">Methodology</span>
+        </Button>
       </div>
     </aside>
   );

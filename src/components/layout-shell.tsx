@@ -1,28 +1,16 @@
 
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useUser } from '@/firebase';
 import { NavSidebar } from "@/components/nav-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { Trophy, Activity } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { isUserLoading } = useUser();
 
-  const isAuthPage = pathname === '/login' || pathname === '/register';
-
-  useEffect(() => {
-    // Basic redirect logic - in a portfolio we might want to allow some public access
-    // but here we follow the standard auth shell pattern
-    if (!isUserLoading && !user && !isAuthPage) {
-      router.replace('/login');
-    }
-  }, [user, isUserLoading, isAuthPage, router]);
-
+  // Removed authentication redirection logic to allow direct access to the analyzer.
+  
   if (isUserLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
@@ -37,16 +25,12 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
             <p className="text-lg font-black text-white uppercase tracking-[0.3em]">Basketball AI</p>
             <div className="flex items-center gap-2 mt-2">
               <Activity className="h-3 w-3 text-orange-500 animate-pulse" />
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Loading Analytics Engine</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Initialising Dashboard</p>
             </div>
           </div>
         </div>
       </div>
     );
-  }
-
-  if (isAuthPage) {
-    return <>{children}<Toaster /></>;
   }
 
   return (
