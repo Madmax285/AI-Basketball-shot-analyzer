@@ -33,13 +33,22 @@ export default function AnalysisDetailPage() {
   const firestore = useFirestore();
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
 
-  const sessionRef = useMemoFirebase(() => doc(firestore, 'analysisSessions', id as string), [firestore, id]);
+  const sessionRef = useMemoFirebase(() => {
+    if (!id) return null;
+    return doc(firestore, 'analysisSessions', id as string);
+  }, [firestore, id]);
+  
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  const shotsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'shotResults'), where('sessionId', '==', id as string), orderBy('shotNumber', 'asc')),
-    [firestore, id]
-  );
+  const shotsQuery = useMemoFirebase(() => {
+    if (!id) return null;
+    return query(
+      collection(firestore, 'shotResults'), 
+      where('sessionId', '==', id as string), 
+      orderBy('shotNumber', 'asc')
+    );
+  }, [firestore, id]);
+
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
 
   if (isSessionLoading || isShotsLoading) {
@@ -80,7 +89,7 @@ export default function AnalysisDetailPage() {
                 {shots?.length || 0} Actions Detected
               </Badge>
               <span className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest">
-                {format(new Date(session.createdAt), 'MMM do, yyyy • p')}
+                {session.createdAt ? format(new Date(session.createdAt), 'MMM do, yyyy • p') : 'Processing...'}
               </span>
             </div>
           </div>
@@ -88,12 +97,12 @@ export default function AnalysisDetailPage() {
         <div className="flex items-center gap-3">
            <div className="text-right mr-2 hidden md:block">
             <p className="text-[10px] font-black uppercase text-slate-400">Session Status</p>
-            <p className="text-sm font-bold text-emerald-600">✅ {session.status.toUpperCase()}</p>
+            <p className="text-sm font-bold text-emerald-600">✅ {session.status?.toUpperCase() || 'COMPLETED'}</p>
           </div>
           <div className="bg-white p-2 rounded-2xl shadow-xl flex items-center gap-4 border px-6">
             <div className="text-center">
                <p className="text-[8px] font-black uppercase text-slate-400">Avg Score</p>
-               <p className="text-xl font-black text-orange-600">{session.overallScore}</p>
+               <p className="text-xl font-black text-orange-600">{session.overallScore || 0}</p>
             </div>
           </div>
         </div>
@@ -106,7 +115,7 @@ export default function AnalysisDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
             <div className="aspect-video w-full relative flex items-center justify-center">
               <img 
-                src={session.processedVideoUrl} 
+                src={session.processedVideoUrl || 'https://picsum.photos/seed/basketball/1200/800'} 
                 alt="Analyzed Frame" 
                 className="w-full h-full object-cover opacity-60"
               />
@@ -254,7 +263,7 @@ export default function AnalysisDetailPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-black text-orange-600">{s.overallScore}%</p>
+                      <p className="text-sm font-black text-orange-600">{s.overallScore || 0}%</p>
                     </div>
                   </div>
                 ))}
@@ -294,7 +303,7 @@ export default function AnalysisDetailPage() {
               <div className="bg-white/10 p-5 rounded-[1.5rem] border border-white/20 flex gap-4">
                 <Zap className="h-6 w-6 text-white shrink-0" />
                 <p className="text-xs font-bold leading-relaxed">
-                  During Shot {currentShot?.shotNumber}, your {currentShot?.actionType} displayed excellent vertical displacement. Target 115° knee flexion for peak power.
+                  During Shot {currentShot?.shotNumber || 1}, your {currentShot?.actionType || 'shot'} displayed excellent vertical displacement. Target 115° knee flexion for peak power.
                 </p>
               </div>
               <Button className="w-full bg-white text-orange-600 hover:bg-white/90 font-black rounded-2xl h-12 uppercase italic">

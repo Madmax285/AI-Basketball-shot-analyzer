@@ -3,15 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Basketball AI Video Analyzer - Public Access Rules
-    // These rules allow unauthenticated users to view and create analysis data
-    // supporting the frictionless "Direct Access" model.
+    // Version: 1.0.6 (Permissions Refresh)
     
-    // Deployment Trigger: Robust permission fix for shotResults and recursive queries
-    // Version: 1.0.5
+    // Allow unauthenticated read/write for all primary data collections
+    // This supports the frictionless "Direct Access" model requested for athletes.
 
-    // Allow public read/write for all primary analysis collections
-    // Using {document=**} to ensure that both document gets and collection lists are covered
-    
     match /analysisSessions/{document=**} {
       allow read, write: if true;
     }
@@ -28,12 +24,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Rules for system metadata
-    match /system/{docId} {
+    match /system/{document=**} {
       allow read, write: if true;
     }
     
-    // Default deny for everything else
+    // Default deny for all other paths to maintain system integrity
     match /{document=**} {
       allow read, write: if false;
     }
