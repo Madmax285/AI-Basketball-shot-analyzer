@@ -1,40 +1,62 @@
-# Basketball AI Analyzer
+# Basketball AI Analyzer 🏀
 
-An AI-powered system for analyzing basketball shooting mechanics using computer vision and pose estimation.
+An AI-powered performance analysis system that uses computer vision to evaluate basketball shooting mechanics.
 
-## Features
-- Video upload and processing
-- Body pose estimation (MediaPipe)
-- Automatic shot phase segmentation
-- Biomechanical angle calculation
-- Form scoring and issue detection
-- Improvement recommendations
+## 🚀 Overview
 
-## Project Structure
-- `backend/`: FastAPI server and analysis logic
-- `pose_detection/`: Computer vision pose extraction
-- `shot_analysis/`: Biomechanics and scoring engine
-- `frontend/`: React dashboard (Coming in next phase)
+The Basketball AI Analyzer identifies key biomechanical markers during a basketball shot. It provides a comprehensive breakdown of your shooting form, including joint angles, phase timing, and actionable recommendations for improvement.
 
-## Setup
+## 🛠 Features
+
+- **Pose Estimation**: Real-time human pose tracking via MediaPipe.
+- **Biomechanical Metrics**: Precise measurement of knee flexion, elbow extension, and torso alignment.
+- **Shot Segmentation**: Automatic identification of loading, takeoff, and release phases.
+- **Form Scoring**: Weighted evaluation system (Lower Body, Upper Body, Alignment).
+- **Intelligent Recommendations**: Heuristic-based feedback to correct common form issues.
+
+## 🏗 Technology Stack
+
+- **Backend**: Python 3.11, FastAPI
+- **CV/ML**: OpenCV, MediaPipe, NumPy
+- **Frontend**: React, Next.js (Planned)
+- **Database**: SQLite (Planned)
+
+## 📁 Project Structure
+
+```text
+basketball-ai-analyzer/
+├── backend/            # FastAPI server and analysis pipeline
+├── pose_detection/     # MediaPipe pose extraction and geometry
+├── shot_analysis/      # Heuristics, scoring, and recs
+├── requirements.txt    # Python dependencies
+└── README.md
+```
+
+## 🛠 Installation & Setup
 
 ### Prerequisites
 - Python 3.11+
-- FFmpeg (optional, for advanced video processing)
 
-### Backend Installation
+### Backend Setup
 1. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-2. Start the server:
+2. Start the FastAPI server:
    ```bash
    uvicorn backend.app.main:app --reload
    ```
 
-## How It Works
-1. **Pose Detection**: Uses MediaPipe to extract 33 body landmarks.
-2. **Angle Calculation**: Computes key joint angles (knees, elbows, torso).
-3. **Shot Segmentation**: Heuristics identify loading, takeoff, and release phases.
-4. **Scoring**: Compares metrics against biomechanical ideals.
-5. **Recommendations**: Generates actionable feedback for the player.
+## 🧪 Testing
+Run the test suite:
+```bash
+pytest
+```
+
+## 📝 Limitations
+- Analysis is most accurate from a side-view or 45-degree angle.
+- Ball release detection is currently an estimate based on wrist peak height.
+- Low light or extremely low resolution may impact pose confidence.
+
+## 👤 Author
+Professional Portfolio Project

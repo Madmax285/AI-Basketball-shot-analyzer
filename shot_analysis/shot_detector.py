@@ -3,73 +3,80 @@ import numpy as np
 
 class ShotDetector:
     """
-    Heuristic-based shot detection and phase segmentation.
+    Analyzes pose history to detect shooting motions and segment phases.
     """
     def __init__(self, fps: float = 30.0):
         self.fps = fps
-        # Thresholds for movement (normalized coordinates)
-        self.vertical_move_threshold = 0.01 
-        self.knee_flexion_threshold = 140.0 # Degrees
+        self.vertical_threshold = 0.02
+        self.knee_flexion_threshold = 150.0
         
     def detect_shots(self, pose_history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Analyzes pose sequences to identify shot attempts.
-        Returns segments with phase metadata.
+        Identifies shot attempts in a sequence of pose data.
+        Returns a list of shot metadata including phase frame indices.
         """
-        if not pose_history:
+        if not pose_history or len(pose_history) < 15:
             return []
             
-        # Simplified shot detection: 
-        # Look for a significant dip (loading) followed by upward motion (takeoff/release)
-        # In a real app, this would be a sliding window or a trained LSTM
+        # Extract vertical movement of key points (hips and wrists)
+        hip_y = []
+        wrist_y = []
         
-        shots = []
-        # For MVP, treat the whole video as one shot if motion is detected
-        # or implement basic peak detection on vertical wrist/hip movement
-        
-        # Extract vertical movement of hips/shoulders
-        vertical_pos = []
         for frame in pose_history:
             lms = frame.get("landmarks", {})
-            if "left_hip" in lms and "right_hip" in lms:
-                avg_y = (lms["left_hip"][1] + lms["right_hip"][1]) / 2
-                vertical_pos.append(avg_y)
+            if "right_hip" in lms and "left_hip" in lms:
+                hip_y.append((lms["right_hip"][1] + lms["left_hip"][1]) / 2)
             else:
-                vertical_pos.append(None)
+                hip_y.append(None)
                 
-        # Basic shot detection logic (stub for MVP)
-        # We assume 1 shot per video for the initial implementation
-        if len(pose_history) > 10:
+            if "right_wrist" in lms:
+                wrist_y.append(lms["right_wrist"][1])
+            else:
+                wrist_y.append(None)
+        
+        # Simple heuristic for MVP:
+        # A shot usually consists of a "dip" (loading) followed by a peak (release)
+        # For now, we segment the entire video as one shot if motion is detected
+        
+        shots = []
+        if any(h is not None for h in hip_y):
+            # Find phase frame indices
+            phases = self._segment_phases(pose_history, hip_y, wrist_y)
+            
             shot = {
                 "shot_id": 1,
-                "start_frame": 0,
-                "end_frame": len(pose_history) - 1,
-                "phases": self._segment_phases(pose_history)
+                "start_frame": pose_history[0]["frame"],
+                "end_frame": pose_history[-1]["frame"],
+                "phases": phases
             }
             shots.append(shot)
             
         return shots
 
-    def _segment_phases(self, pose_history: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _segment_phases(self, pose_history: List[Dict[str, Any]], hip_y: list, wrist_y: list) -> Dict[str, int]:
         """
-        Identifies frame indices for each shooting phase.
+        Heuristic approximation of shooting phases based on movement.
         """
-        # Heuristics:
-        # Preparation: Start of motion
-        # Loading: Max knee flexion (lowest point)
-        # Takeoff: Knees extending, hips moving up
-        # Release: Max arm extension near peak height
-        # Landing: Hips moving down, feet returning to ground
-        
-        # This is a heuristic approximation
         frames = [f["frame"] for f in pose_history]
-        mid = len(frames) // 2
         
+        # Loading: Lowest point of hips
+        valid_hips = [(i, y) for i, y in enumerate(hip_y) if y is not None]
+        if valid_hips:
+            loading_idx = max(valid_hips, key=lambda x: x[1])[0] # Max Y is lowest in image coords
+        else:
+            loading_idx = int(len(frames) * 0.3)
+            
+        # Release: Peak of wrist height during upward motion
+        valid_wrists = [(i, y) for i, y in enumerate(wrist_y) if y is not None and i > loading_idx]
+        if valid_wrists:
+            release_idx = min(valid_wrists, key=lambda x: x[1])[0] # Min Y is highest
+        else:
+            release_idx = int(len(frames) * 0.7)
+            
         return {
             "preparation": frames[0],
-            "loading": frames[int(len(frames) * 0.3)],
-            "takeoff": frames[int(len(frames) * 0.5)],
-            "release": frames[int(len(frames) * 0.6)],
-            "landing": frames[int(len(frames) * 0.8)],
-            "follow_through": frames[int(len(frames) * 0.9)]
+            "loading": frames[loading_idx],
+            "takeoff": frames[int((loading_idx + release_idx) / 2)],
+            "release": frames[release_idx],
+            "landing": frames[-1]
         }

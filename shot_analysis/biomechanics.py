@@ -1,36 +1,35 @@
 from typing import List, Dict, Any
 
 class BiomechanicsAnalyzer:
+    """
+    Calculates detailed physical metrics for a detected shot.
+    """
     def analyze_shot(self, shot_data: List[Dict[str, Any]], phases: Dict[str, int]) -> Dict[str, Any]:
-        """
-        Calculates biomechanical metrics for a specific shot attempt.
-        """
         metrics = {
             "max_knee_flexion": 180.0,
-            "release_elbow_angle": 180.0,
-            "torso_angle_takeoff": 0.0,
-            "symmetry_score": 100.0
+            "release_elbow_angle": 0.0,
+            "torso_angle_loading": 0.0,
+            "symmetry_score": 100.0,
+            "jump_height_est": 0.0
         }
         
-        # Map frame indices to data
         frame_map = {f["frame"]: f for f in shot_data}
         
-        # Knee Flexion at Loading
-        loading_frame = phases.get("loading")
-        if loading_frame in frame_map:
-            angles = frame_map[loading_frame].get("angles", {})
-            left = angles.get("left_knee", 180.0)
-            right = angles.get("right_knee", 180.0)
-            metrics["max_knee_flexion"] = (left + right) / 2
-            metrics["symmetry_score"] = 100 - abs(left - right)
+        # Analyze Loading Phase
+        load_f = phases.get("loading")
+        if load_f in frame_map:
+            angles = frame_map[load_f].get("angles", {})
+            l_knee = angles.get("left_knee", 180.0)
+            r_knee = angles.get("right_knee", 180.0)
+            metrics["max_knee_flexion"] = round((l_knee + r_knee) / 2, 1)
+            metrics["symmetry_score"] = round(100 - abs(l_knee - r_knee), 1)
+            metrics["torso_angle_loading"] = round(angles.get("right_torso", 0.0), 1)
             
-        # Elbow Angle at Release
-        release_frame = phases.get("release")
-        if release_frame in frame_map:
-            angles = frame_map[release_frame].get("angles", {})
-            # Determine shooting arm (usually higher visibility or more flexed)
-            left_e = angles.get("left_elbow", 180.0)
-            right_e = angles.get("right_elbow", 180.0)
-            metrics["release_elbow_angle"] = max(left_e, right_e) # Extension is high angle
-
+        # Analyze Release Phase
+        rel_f = phases.get("release")
+        if rel_f in frame_map:
+            angles = frame_map[rel_f].get("angles", {})
+            # Get max elbow extension (highest angle)
+            metrics["release_elbow_angle"] = round(max(angles.get("right_elbow", 0), angles.get("left_elbow", 0)), 1)
+            
         return metrics

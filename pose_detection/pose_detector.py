@@ -15,9 +15,8 @@ class PoseDetector:
             min_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence
         )
-        self.mp_draw = mp.solutions.drawing_utils
         
-        # Mapping indices to names
+        # Mapping indices to names for easier access
         self.landmark_map = {
             11: 'left_shoulder', 12: 'right_shoulder',
             13: 'left_elbow', 14: 'right_elbow',
@@ -38,7 +37,6 @@ class PoseDetector:
             
         results_data = []
         frame_count = 0
-        
         fps = cap.get(cv2.CAP_PROP_FPS)
         
         while cap.isOpened():
@@ -52,7 +50,7 @@ class PoseDetector:
                 
                 frame_data = {
                     "frame": frame_count,
-                    "timestamp": frame_count / fps if fps > 0 else 0,
+                    "timestamp": round(frame_count / fps, 3) if fps > 0 else 0,
                     "landmarks": {},
                     "angles": {},
                     "confidence": 0.0
@@ -63,7 +61,7 @@ class PoseDetector:
                     confidences = []
                     for idx, name in self.landmark_map.items():
                         lm = results.pose_landmarks.landmark[idx]
-                        landmarks_dict[name] = [lm.x, lm.y, lm.visibility]
+                        landmarks_dict[name] = [round(lm.x, 4), round(lm.y, 4), round(lm.visibility, 4)]
                         confidences.append(lm.visibility)
                     
                     frame_data["landmarks"] = landmarks_dict
@@ -76,12 +74,3 @@ class PoseDetector:
             
         cap.release()
         return results_data
-
-    def draw_landmarks(self, frame: np.ndarray, landmarks_dict: Dict[str, List[float]]) -> np.ndarray:
-        """
-        Utility to draw detected landmarks on a frame (for visualization).
-        Note: This expects raw landmarks or normalized coords.
-        """
-        # This is a simplified version; in production we use mp_draw.draw_landmarks
-        # with the original Mediapipe results object.
-        return frame
