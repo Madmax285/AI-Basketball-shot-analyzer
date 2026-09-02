@@ -6,6 +6,8 @@ service cloud.firestore {
     // These rules allow unauthenticated users to view and create analysis data
     // to support the frictionless "Direct Access" model requested for this project.
     
+    // Deployment Trigger: Updated rules for Shot Intelligence Pipeline
+    
     // Allow public read/write for analysis sessions
     match /analysisSessions/{sessionId} {
       allow read, write: if true;
@@ -16,12 +18,17 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Allow public read/write for timeline events
+    match /detectedEvents/{eventId} {
+      allow read, write: if true;
+    }
+
     // Allow public read/write for form issues/recommendations
     match /formIssues/{issueId} {
       allow read, write: if true;
     }
 
-    // Rules for system metadata (e.g., used for state or demo data initialization)
+    // Rules for system metadata
     match /system/{docId} {
       allow read, write: if true;
     }
