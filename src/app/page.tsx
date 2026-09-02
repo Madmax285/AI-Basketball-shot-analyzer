@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -15,24 +15,22 @@ import {
   Activity,
   History
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { Badge } from '@/components/ui/badge';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
-  const { user } = useUser();
   const firestore = useFirestore();
   
+  // Updated query to be public-access friendly (removed userId filter)
   const sessionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
     return query(
       collection(firestore, 'analysisSessions'),
-      where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
-  }, [firestore, user]);
+  }, [firestore]);
 
   const { data: sessions, isLoading } = useCollection(sessionsQuery);
 
@@ -120,7 +118,11 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[350px] pt-4">
             <ResponsiveContainer width="100%" height="100%">
-              {chartData.length > 0 ? (
+              {isLoading ? (
+                 <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                  Loading Performance Data...
+                </div>
+              ) : chartData.length > 0 ? (
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
@@ -157,7 +159,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="space-y-1">
-              {sessions?.length ? sessions.map((s, idx) => (
+              {isLoading ? (
+                <div className="py-20 text-center space-y-4 px-6">
+                  <Activity className="h-8 w-8 text-slate-200 animate-spin mx-auto" />
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Syncing Sessions...</p>
+                </div>
+              ) : sessions?.length ? sessions.map((s, idx) => (
                 <Link href={`/analysis/${s.id}`} key={s.id}>
                   <div className={cn(
                     "flex items-center justify-between p-4 hover:bg-orange-50 transition-colors group cursor-pointer",
