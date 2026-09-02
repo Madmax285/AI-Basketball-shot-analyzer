@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -7,10 +6,10 @@ import {
   LayoutDashboard, 
   Upload, 
   History, 
-  Settings,
   Activity,
   Trophy,
-  Info
+  BookOpen,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/upload", label: "Analyze Shot", icon: Upload },
   { href: "/history", label: "Session History", icon: History },
+  { href: "/metrics", label: "Biometrics Suite", icon: Activity },
 ];
 
 export function NavSidebar() {
@@ -54,41 +54,41 @@ export function NavSidebar() {
           ))}
           
           <div className="pt-8 pb-2 px-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Analytics</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Resources</p>
           </div>
           
           <Link
-            href="/metrics"
+            href="/methodology"
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
-              pathname === "/metrics"
+              pathname === "/methodology"
                 ? "bg-orange-600 text-white shadow-md"
                 : "text-slate-400 hover:bg-slate-900 hover:text-white"
             )}
           >
-            <Activity className="h-4 w-4 text-orange-500" />
-            Biomechanics
+            <BookOpen className="h-4 w-4 text-orange-500" />
+            Methodology
           </Link>
         </nav>
       </div>
       
-      <div className="p-4 border-t border-slate-900 bg-black/40 space-y-2">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-900 h-9 rounded-lg"
-        >
-          <Settings className="h-4 w-4" />
-          <span className="text-xs font-medium">System Config</span>
-        </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-900 h-9 rounded-lg"
-        >
-          <Info className="h-4 w-4" />
-          <span className="text-xs font-medium">Methodology</span>
-        </Button>
+      <div className="p-4 border-t border-slate-900 bg-black/40">
+        <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-emerald-500" />
+            <span className="text-[10px] font-black uppercase text-white">System Status</span>
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] font-bold">
+              <span className="text-slate-500">POSE ENGINE</span>
+              <span className="text-emerald-500">ACTIVE</span>
+            </div>
+            <div className="flex justify-between text-[9px] font-bold">
+              <span className="text-slate-500">GENKIT AI</span>
+              <span className="text-emerald-500">ONLINE</span>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   );

@@ -1,23 +1,16 @@
-
 {
   "placeholderImages": [
     {
-      "id": "hero-volunteer",
-      "description": "Diverse group of volunteers working together",
-      "imageUrl": "https://picsum.photos/seed/volunteer-1/1200/600",
-      "imageHint": "volunteer community"
+      "id": "basketball-court",
+      "description": "Professional basketball court for dashboard background",
+      "imageUrl": "https://picsum.photos/seed/court1/1200/800",
+      "imageHint": "basketball court"
     },
     {
-      "id": "mission-education",
-      "description": "A volunteer teaching children",
-      "imageUrl": "https://picsum.photos/seed/edu/600/400",
-      "imageHint": "teaching classroom"
-    },
-    {
-      "id": "mission-environment",
-      "description": "Volunteers planting trees",
-      "imageUrl": "https://picsum.photos/seed/env/600/400",
-      "imageHint": "planting trees"
+      "id": "shot-analysis",
+      "description": "Mock image of a player shooting with skeleton overlay",
+      "imageUrl": "https://picsum.photos/seed/shot1/800/600",
+      "imageHint": "basketball jump shot"
     }
   ]
 }
