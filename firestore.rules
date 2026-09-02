@@ -4,27 +4,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Basketball AI Analyzer - Public Access Rules
     // These rules allow unauthenticated users to view and create analysis data
-    // to support the frictionless "Direct Access" model requested for this project.
+    // supporting the frictionless "Direct Access" model.
     
-    // Deployment Trigger: Updated rules for Shot Intelligence Pipeline
+    // Deployment Trigger: Final permission fix for shotResults and multi-event timeline
+    // Version: 1.0.4
+
+    // Allow public read/write for all primary analysis collections
+    // Using {document=**} to ensure that both document gets and collection lists are covered
     
-    // Allow public read/write for analysis sessions
-    match /analysisSessions/{sessionId} {
+    match /analysisSessions/{document=**} {
       allow read, write: if true;
     }
 
-    // Allow public read/write for individual shot results
-    match /shotResults/{shotId} {
+    match /shotResults/{document=**} {
       allow read, write: if true;
     }
 
-    // Allow public read/write for timeline events
-    match /detectedEvents/{eventId} {
+    match /detectedEvents/{document=**} {
       allow read, write: if true;
     }
 
-    // Allow public read/write for form issues/recommendations
-    match /formIssues/{issueId} {
+    match /formIssues/{document=**} {
       allow read, write: if true;
     }
 
