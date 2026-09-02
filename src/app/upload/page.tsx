@@ -4,10 +4,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Video, X, Loader2, Info, CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { Video, X, Loader2, Info, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
@@ -71,7 +72,7 @@ export default function UploadPage() {
     }
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file) return;
 
     setIsUploading(true);
@@ -83,7 +84,8 @@ export default function UploadPage() {
       const mockScore = 75 + Math.floor(Math.random() * 20);
       const isImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg');
       
-      await setDoc(sessionRef, {
+      // Use non-blocking updates for Firestore mutations to improve responsiveness
+      setDocumentNonBlocking(sessionRef, {
         id: sessionId,
         userId: user?.uid || 'anonymous',
         filename: file.name,
@@ -93,7 +95,7 @@ export default function UploadPage() {
         processedVideoUrl: isImage ? 'https://picsum.photos/seed/basketball-still/1200/800' : 'https://picsum.photos/seed/basketball/1200/600',
         duration: isImage ? 0 : 8.4,
         type: isImage ? 'image' : 'video'
-      });
+      }, {});
 
       // Create multiple shots for video for demo purposes
       const numShots = isImage ? 1 : 3;
@@ -103,7 +105,7 @@ export default function UploadPage() {
         const actionTypes = ['Jump Shot', '3-Point Shot', 'Layup', 'Dunk'];
         const results = ['MADE', 'MISSED', 'DETECTED'];
         
-        await setDoc(doc(firestore, 'shotResults', shotId), {
+        setDocumentNonBlocking(doc(firestore, 'shotResults', shotId), {
           id: shotId,
           sessionId,
           shotNumber: i,
@@ -122,23 +124,25 @@ export default function UploadPage() {
             release_elbow_angle: 168.2,
             torso_angle: 8.4
           }
-        });
+        }, {});
       }
 
       toast({
-        title: "Analysis Complete",
-        description: `${isImage ? 'Photo' : 'Video'} processed. ${numShots} actions identified.`,
+        title: "Analysis Initiated",
+        description: `${isImage ? 'Photo' : 'Video'} is being processed. Redirecting to analysis dashboard...`,
       });
 
-      router.push(`/analysis/${sessionId}`);
+      // Navigate after a short delay to allow background sync to initiate
+      setTimeout(() => {
+        router.push(`/analysis/${sessionId}`);
+      }, 500);
     } catch (error) {
+      setIsUploading(false);
       toast({
         variant: "destructive",
-        title: "Analysis Failed",
-        description: "There was an error processing your file."
+        title: "Process Failed",
+        description: "There was an error initiating the analysis pipeline."
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 

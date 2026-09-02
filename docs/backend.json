@@ -33,6 +33,11 @@
         "playStatus": { "type": "string" },
         "timestamp": { "type": "number" },
         "overallScore": { "type": "number" },
+        "lowerBodyScore": { "type": "number" },
+        "upperBodyScore": { "type": "number" },
+        "alignmentScore": { "type": "number" },
+        "releaseScore": { "type": "number" },
+        "consistencyScore": { "type": "number" },
         "metrics": { "type": "object" },
         "foulAnalysis": { "type": "object" },
         "violationAnalysis": { "type": "object" }

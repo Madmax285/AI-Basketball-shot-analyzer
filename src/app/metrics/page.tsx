@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
@@ -9,7 +10,6 @@ import {
   TrendingDown, 
   Dna,
   Zap,
-  ChevronRight
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -27,15 +27,29 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 export default function BiometricsSuitePage() {
   const firestore = useFirestore();
+  const [trendData, setChartData] = useState<any[]>([]);
 
   const sessionsQuery = useMemoFirebase(() => 
     query(collection(firestore, 'analysisSessions'), orderBy('createdAt', 'desc')),
     [firestore]
   );
   const { data: sessions, isLoading } = useCollection(sessionsQuery);
+
+  // Defer random data generation until client-side hydration to avoid mismatches
+  useEffect(() => {
+    if (sessions) {
+      const data = sessions.map(s => ({ 
+        date: format(new Date(s.createdAt), 'MMM d'), 
+        score: s.overallScore,
+        knee: 110 + Math.random() * 10 
+      })).reverse();
+      setChartData(data);
+    }
+  }, [sessions]);
 
   const avgMetrics = sessions?.length ? {
     knee: Math.round(sessions.reduce((acc, s) => acc + (s.overallScore || 0), 0) / sessions.length),
@@ -156,11 +170,7 @@ export default function BiometricsSuitePage() {
         </CardHeader>
         <CardContent className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sessions?.map(s => ({ 
-              date: format(new Date(s.createdAt), 'MMM d'), 
-              score: s.overallScore,
-              knee: 110 + Math.random() * 10 
-            })).reverse()}>
+            <BarChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
               <XAxis dataKey="date" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} />
