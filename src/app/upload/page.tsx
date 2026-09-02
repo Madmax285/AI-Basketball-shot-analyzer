@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, Video, X, Loader2, Info, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -56,7 +56,7 @@ export default function UploadPage() {
   };
 
   const handleUpload = async () => {
-    if (!file || !user) return;
+    if (!file) return;
 
     setIsUploading(true);
     
@@ -73,7 +73,7 @@ export default function UploadPage() {
       
       await setDoc(sessionRef, {
         id: sessionId,
-        userId: user.uid,
+        userId: user?.uid || 'anonymous',
         filename: file.name,
         createdAt: new Date().toISOString(),
         status: 'completed',
