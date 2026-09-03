@@ -21,7 +21,7 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
@@ -29,6 +29,11 @@ export default function Dashboard() {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const sessionsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -49,7 +54,7 @@ export default function Dashboard() {
     : 0;
 
   const chartData = sessions?.map(s => ({
-    date: format(new Date(s.createdAt), 'MMM d'),
+    date: s.createdAt ? format(new Date(s.createdAt), 'MMM d') : 'N/A',
     score: s.overallScore
   })).reverse() || [];
 
@@ -185,36 +190,42 @@ export default function Dashboard() {
             <CardDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">Tracking form improvement over time.</CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              {isLoading ? (
-                 <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">
-                  Syncing Performance Graph...
-                </div>
-              ) : chartData.length > 0 ? (
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
-                  <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                  />
-                  <Area type="monotone" dataKey="score" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
-                </AreaChart>
-              ) : (
-                <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 gap-4">
-                  <p className="font-bold uppercase tracking-widest text-[10px] text-center max-w-xs italic opacity-60">
-                    No data points available. Upload a basketball clip to initialize performance tracking.
-                  </p>
-                  <Button variant="ghost" onClick={handleTryDemo} className="text-orange-600 font-black uppercase text-[10px] tracking-widest h-auto p-0">Try a demo session</Button>
-                </div>
-              )}
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                {isLoading ? (
+                  <div className="h-full w-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">
+                    Syncing Performance Graph...
+                  </div>
+                ) : chartData.length > 0 ? (
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
+                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10, fontWeight: 800}} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                    />
+                    <Area type="monotone" dataKey="score" stroke="#f97316" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
+                  </AreaChart>
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 gap-4">
+                    <p className="font-bold uppercase tracking-widest text-[10px] text-center max-w-xs italic opacity-60">
+                      No data points available. Upload a basketball clip to initialize performance tracking.
+                    </p>
+                    <Button variant="ghost" onClick={handleTryDemo} className="text-orange-600 font-black uppercase text-[10px] tracking-widest h-auto p-0">Try a demo session</Button>
+                  </div>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -242,12 +253,14 @@ export default function Dashboard() {
                     idx !== (sessions.length - 1) && "border-b border-slate-50"
                   )}>
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300 shadow-inner overflow-hidden">
+                      <div className={cn(
+                        "h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300 shadow-inner overflow-hidden"
+                      )}>
                         <Play className="h-5 w-5 text-slate-400 group-hover:text-white" />
                       </div>
                       <div>
                         <p className="text-sm font-black text-slate-900 truncate max-w-[150px] uppercase italic tracking-tighter">{s.filename}</p>
-                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{format(new Date(s.createdAt), 'MMM d, h:mm a')}</p>
+                        <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">{s.createdAt ? format(new Date(s.createdAt), 'MMM d, h:mm a') : 'N/A'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">

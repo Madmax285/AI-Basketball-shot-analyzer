@@ -35,6 +35,11 @@ export default function BiometricsSuitePage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [chartData, setChartData] = useState<any[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
@@ -53,7 +58,6 @@ export default function BiometricsSuitePage() {
       const data = [...sessions].reverse().map((s, idx) => ({ 
         date: s.createdAt ? format(new Date(s.createdAt), 'MMM d') : `S-${idx}`, 
         score: s.overallScore || 0,
-        // Using a deterministic value based on score to avoid hydration mismatch
         avgKnee: Math.max(90, Math.min(130, 110 + ((s.overallScore || 80) % 20))) 
       }));
       setChartData(data);
@@ -134,28 +138,34 @@ export default function BiometricsSuitePage() {
             <CardDescription className="text-[10px] font-bold uppercase tracking-tight">Dimensional biomechanical analysis</CardDescription>
           </CardHeader>
           <CardContent className="h-[400px] pt-8">
-            <ResponsiveContainer width="100%" height="100%">
-              {radarData.length > 0 ? (
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                  <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
-                  <Radar
-                    name="Athlete"
-                    dataKey="A"
-                    stroke="#f97316"
-                    strokeWidth={3}
-                    fill="#f97316"
-                    fillOpacity={0.5}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                  />
-                </RadarChart>
-              ) : (
-                <div className="h-full flex items-center justify-center text-slate-300 font-black uppercase text-[10px] italic">Zero sessions detected</div>
-              )}
-            </ResponsiveContainer>
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                {radarData.length > 0 ? (
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} axisLine={false} tick={false} />
+                    <Radar
+                      name="Athlete"
+                      dataKey="A"
+                      stroke="#f97316"
+                      strokeWidth={3}
+                      fill="#f97316"
+                      fillOpacity={0.5}
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                    />
+                  </RadarChart>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-300 font-black uppercase text-[10px] italic">Zero sessions detected</div>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -240,28 +250,34 @@ export default function BiometricsSuitePage() {
           </div>
         </CardHeader>
         <CardContent className="h-[350px] pt-10">
-          <ResponsiveContainer width="100%" height="100%">
-            {chartData.length > 0 ? (
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} domain={[0, 100]} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                />
-                <Bar dataKey="score" fill="#f97316" radius={[6, 6, 0, 0]} barSize={24} />
-                <Bar dataKey="avgKnee" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={24} />
-              </BarChart>
-            ) : (
-               <div className="h-full flex flex-col items-center justify-center gap-4">
-                  <div className="bg-slate-50 p-6 rounded-full">
-                    <Activity className="h-10 w-10 text-slate-200" />
-                  </div>
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] italic">Analysis history needed for trend extraction</p>
-               </div>
-            )}
-          </ResponsiveContainer>
+          {isMounted ? (
+            <ResponsiveContainer width="100%" height="100%">
+              {chartData.length > 0 ? (
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 800}} domain={[0, 100]} />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="score" fill="#f97316" radius={[6, 6, 0, 0]} barSize={24} />
+                  <Bar dataKey="avgKnee" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={24} />
+                </BarChart>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center gap-4">
+                    <div className="bg-slate-50 p-6 rounded-full">
+                      <Activity className="h-10 w-10 text-slate-200" />
+                    </div>
+                    <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] italic">Analysis history needed for trend extraction</p>
+                </div>
+              )}
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <Loader2 className="h-8 w-8 text-orange-600 animate-spin" />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
