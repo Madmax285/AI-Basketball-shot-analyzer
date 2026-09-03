@@ -3,7 +3,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -40,6 +40,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
+// Export all hooks and components from their respective sub-directories
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
