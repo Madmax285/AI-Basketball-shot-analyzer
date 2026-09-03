@@ -1,16 +1,23 @@
+
 {
   "placeholderImages": [
     {
-      "id": "basketball-court",
-      "description": "Professional basketball court for dashboard background",
-      "imageUrl": "https://picsum.photos/seed/court1/1200/800",
+      "id": "court-background",
+      "description": "Professional basketball court background for metrics visualization.",
+      "imageUrl": "https://picsum.photos/seed/court-pro/1200/800",
       "imageHint": "basketball court"
     },
     {
-      "id": "shot-analysis",
-      "description": "Mock image of a player shooting with skeleton overlay",
-      "imageUrl": "https://picsum.photos/seed/shot1/800/600",
+      "id": "analysis-frame-default",
+      "description": "Default frame for shot analysis overlay.",
+      "imageUrl": "https://picsum.photos/seed/shot-analysis-1/1200/600",
       "imageHint": "basketball jump shot"
+    },
+    {
+      "id": "athlete-profile-thumb",
+      "description": "Generic athlete thumbnail for session lists.",
+      "imageUrl": "https://picsum.photos/seed/athlete/400/400",
+      "imageHint": "basketball player"
     }
   ]
 }

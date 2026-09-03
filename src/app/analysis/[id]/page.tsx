@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -38,7 +39,6 @@ import { analyzeForm, type AnalyzeFormOutput } from '@/ai/flows/analyze-form-flo
 export default function AnalysisDetailPage() {
   const params = useParams();
   const rawId = params?.id;
-  // Robustly extract ID and handle common "undefined" string issue
   const id = typeof rawId === 'string' && rawId !== 'undefined' ? rawId : null;
   
   const firestore = useFirestore();
@@ -46,11 +46,9 @@ export default function AnalysisDetailPage() {
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
   
-  // AI Feedback State
   const [aiFeedback, setAiFeedback] = useState<AnalyzeFormOutput | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Guarded session reference
   const sessionRef = useMemoFirebase(() => {
     if (!id || !user?.uid) return null;
     return doc(firestore, 'analysisSessions', id);
@@ -58,7 +56,6 @@ export default function AnalysisDetailPage() {
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  // Guarded shots query - only run if session and user are fully resolved
   const shotsQuery = useMemoFirebase(() => {
     if (!id || !user?.uid || !session) return null;
     return query(
@@ -73,7 +70,6 @@ export default function AnalysisDetailPage() {
 
   const currentShot = shots?.[selectedShotIdx] || shots?.[0];
 
-  // Fetch AI Feedback when current shot changes
   useEffect(() => {
     if (currentShot) {
       handleGetAiFeedback(currentShot);
@@ -146,7 +142,6 @@ export default function AnalysisDetailPage() {
 
   return (
     <div className="space-y-8 pb-20 basketball-grid min-h-full">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/history">
@@ -181,7 +176,6 @@ export default function AnalysisDetailPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column: Video & Actions */}
         <div className="lg:col-span-8 space-y-6">
           <Card className="border-none shadow-2xl bg-slate-950 overflow-hidden relative group rounded-[2.5rem] ring-1 ring-white/10">
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
@@ -190,6 +184,7 @@ export default function AnalysisDetailPage() {
                 src={session.processedVideoUrl || 'https://picsum.photos/seed/basketball/1200/800'} 
                 alt="Analyzed Frame" 
                 className="w-full h-full object-cover opacity-60"
+                data-ai-hint="basketball court"
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <Button className="bg-orange-600 hover:bg-orange-700 h-20 w-20 rounded-full shadow-2xl transition-transform hover:scale-110">
@@ -198,7 +193,6 @@ export default function AnalysisDetailPage() {
               </div>
             </div>
             
-            {/* Timeline Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-8 pt-20 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent">
               <div className="relative h-1.5 w-full bg-white/10 rounded-full mb-6 group-hover:h-2 transition-all">
                 <div className="absolute top-0 left-0 h-full w-[40%] bg-orange-600 rounded-full" />
@@ -243,7 +237,6 @@ export default function AnalysisDetailPage() {
             </div>
           </Card>
 
-          {/* Intelligence Cards */}
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="border-none shadow-xl bg-white rounded-[2rem]">
               <CardHeader className="flex flex-row items-center gap-3">
@@ -308,7 +301,6 @@ export default function AnalysisDetailPage() {
           </div>
         </div>
 
-        {/* Right Column: Shot Selector & Metrics */}
         <div className="lg:col-span-4 space-y-6">
           <Card className="border-none shadow-xl bg-white rounded-[2rem] overflow-hidden">
             <CardHeader className="pb-2 bg-slate-50/50 border-b">
