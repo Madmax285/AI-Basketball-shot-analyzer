@@ -40,7 +40,7 @@ export function NavSidebar() {
   };
 
   return (
-    <aside className="w-64 border-r bg-slate-950 text-slate-300 h-screen sticky top-0 flex flex-col">
+    <aside className="w-64 border-r bg-slate-950 text-slate-300 h-screen sticky top-0 flex flex-col shrink-0">
       <div className="p-6 flex-1 overflow-y-auto">
         <div className="flex items-center gap-3 mb-8 px-2">
           <div className="bg-orange-600 p-2 rounded-xl shadow-lg shadow-orange-900/20">

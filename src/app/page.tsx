@@ -36,14 +36,14 @@ export default function Dashboard() {
   }, []);
   
   const sessionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user?.uid) return null;
     return query(
       collection(firestore, 'analysisSessions'),
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
   const { data: sessions, isLoading: isQueryLoading } = useCollection(sessionsQuery);
 
@@ -61,7 +61,10 @@ export default function Dashboard() {
   const handleTryDemo = () => {
     if (!user) return;
     setIsSeeding(true);
-    const sessionId = `demo-${crypto.randomUUID().substring(0,8)}`;
+    
+    // Stable ID generation for browser environments
+    const randomId = Math.random().toString(36).substring(2, 10);
+    const sessionId = `demo-${randomId}`;
     const sessionRef = doc(firestore, 'analysisSessions', sessionId);
     
     setDocumentNonBlocking(sessionRef, {
@@ -104,7 +107,7 @@ export default function Dashboard() {
 
     setTimeout(() => {
       router.push(`/analysis/${sessionId}`);
-    }, 1500);
+    }, 1200);
   };
 
   return (

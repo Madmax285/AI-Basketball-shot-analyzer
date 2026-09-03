@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -19,12 +18,13 @@ import {
   Info,
   Zap,
   Loader2,
-  Sparkles
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -48,6 +48,7 @@ export default function AnalysisDetailPage() {
   
   const [aiFeedback, setAiFeedback] = useState<AnalyzeFormOutput | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const feedbackRequestId = useRef<string | null>(null);
 
   const sessionRef = useMemoFirebase(() => {
     if (!id || !user?.uid) return null;
@@ -77,7 +78,12 @@ export default function AnalysisDetailPage() {
   }, [currentShot?.id]);
 
   const handleGetAiFeedback = async (shot: any) => {
+    const requestId = Math.random().toString(36);
+    feedbackRequestId.current = requestId;
+    
     setIsAiLoading(true);
+    setAiFeedback(null);
+    
     try {
       const feedback = await analyzeForm({
         kneeAngle: shot.metrics?.max_knee_flexion || 115,
@@ -85,11 +91,17 @@ export default function AnalysisDetailPage() {
         torsoAngle: shot.metrics?.torso_angle || 5,
         formScore: shot.overallScore || 85
       });
-      setAiFeedback(feedback);
+      
+      // Prevent race conditions: only update if this is still the active request
+      if (feedbackRequestId.current === requestId) {
+        setAiFeedback(feedback);
+      }
     } catch (err) {
       console.error("AI Coach Error:", err);
     } finally {
-      setIsAiLoading(false);
+      if (feedbackRequestId.current === requestId) {
+        setIsAiLoading(false);
+      }
     }
   };
 
@@ -106,11 +118,14 @@ export default function AnalysisDetailPage() {
     );
   }
 
-  if (!id || !session) {
+  if (!id || (!session && !isSessionLoading)) {
     return (
-      <div className="text-center py-20 basketball-grid rounded-[3rem] border-2 border-dashed">
+      <div className="text-center py-20 basketball-grid rounded-[3rem] border-2 border-dashed space-y-6">
+        <div className="mx-auto bg-slate-100 h-16 w-16 rounded-full flex items-center justify-center">
+           <AlertTriangle className="h-8 w-8 text-slate-400" />
+        </div>
         <h2 className="text-2xl font-black italic uppercase text-slate-900">Analysis Not Found</h2>
-        <p className="text-slate-500 font-medium mb-8">This session may belong to another user or was deleted.</p>
+        <p className="text-slate-500 font-medium max-w-xs mx-auto">This session may be processing or does not belong to your account.</p>
         <Link href="/history">
           <Button variant="outline" className="rounded-2xl h-12 px-8 border-2 font-black uppercase">
             Go To History
@@ -150,13 +165,13 @@ export default function AnalysisDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">{session.filename}</h1>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">{session?.filename}</h1>
             <div className="flex items-center gap-3 mt-1">
               <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase font-black text-[10px]">
                 {shots?.length || 0} Actions Analyzed
               </Badge>
               <span className="text-muted-foreground font-medium uppercase text-[10px] tracking-widest">
-                {session.createdAt ? format(new Date(session.createdAt), 'MMM do, yyyy • p') : 'Processing...'}
+                {session?.createdAt ? format(new Date(session.createdAt), 'MMM do, yyyy • p') : 'Processing...'}
               </span>
             </div>
           </div>
@@ -164,12 +179,12 @@ export default function AnalysisDetailPage() {
         <div className="flex items-center gap-3">
            <div className="text-right mr-2 hidden md:block">
             <p className="text-[10px] font-black uppercase text-slate-400">Session ID</p>
-            <p className="text-xs font-mono font-bold text-slate-500 uppercase">{session.id.substring(0,8)}</p>
+            <p className="text-xs font-mono font-bold text-slate-500 uppercase">{session?.id.substring(0,8)}</p>
           </div>
           <div className="bg-white p-2 rounded-2xl shadow-xl flex items-center gap-4 border px-6 h-16">
             <div className="text-center">
                <p className="text-[8px] font-black uppercase text-slate-400">Avg Score</p>
-               <p className="text-xl font-black text-orange-600">{session.overallScore || 0}</p>
+               <p className="text-xl font-black text-orange-600">{session?.overallScore || 0}</p>
             </div>
           </div>
         </div>
@@ -181,7 +196,7 @@ export default function AnalysisDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
             <div className="aspect-video w-full relative flex items-center justify-center">
               <img 
-                src={session.processedVideoUrl || 'https://picsum.photos/seed/basketball/1200/800'} 
+                src={session?.processedVideoUrl || 'https://picsum.photos/seed/basketball/1200/800'} 
                 alt="Analyzed Frame" 
                 className="w-full h-full object-cover opacity-60"
                 data-ai-hint="basketball court"
@@ -372,14 +387,14 @@ export default function AnalysisDetailPage() {
             <CardContent className="space-y-4 relative z-10">
               <div className="bg-white/10 p-5 rounded-[1.5rem] border border-white/20 flex flex-col gap-3 min-h-[120px]">
                 {isAiLoading ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2">
+                  <div className="flex flex-col items-center justify-center h-full gap-2 py-4">
                     <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    <p className="text-[10px] font-black uppercase opacity-60">Coach is reviewing metrics...</p>
+                    <p className="text-[10px] font-black uppercase opacity-60 text-center">Coach is reviewing metrics...</p>
                   </div>
                 ) : (
                   <>
                     <p className="text-xs font-bold leading-relaxed">
-                      {aiFeedback?.coachFeedback || "Analyze your shot to receive professional coaching feedback based on your joint angles and sequence."}
+                      {aiFeedback?.coachFeedback || "Select a shot to receive professional coaching feedback based on your joint angles and sequence."}
                     </p>
                     {aiFeedback?.keyTakeaway && (
                       <div className="pt-2 border-t border-white/20 flex gap-2">
