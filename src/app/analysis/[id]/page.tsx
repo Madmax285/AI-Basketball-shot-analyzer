@@ -39,28 +39,32 @@ import {
 } from "@/components/ui/dialog";
 
 export default function AnalysisDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
+  // Guarded Session Reference
   const sessionRef = useMemoFirebase(() => {
-    if (!id || !user) return null;
-    return doc(firestore, 'analysisSessions', id as string);
-  }, [firestore, id, user]);
+    if (!id || id === 'undefined' || !user?.uid) return null;
+    return doc(firestore, 'analysisSessions', id);
+  }, [firestore, id, user?.uid]);
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
+  // Guarded Shots Query
+  // Note: Firestore requires query filters to match security rules constraints for 'list'
   const shotsQuery = useMemoFirebase(() => {
-    if (!id || !user) return null;
+    if (!id || id === 'undefined' || !user?.uid) return null;
     return query(
       collection(firestore, 'shotResults'), 
-      where('sessionId', '==', id as string),
       where('userId', '==', user.uid),
+      where('sessionId', '==', id),
       orderBy('shotNumber', 'asc')
     );
-  }, [firestore, id, user]);
+  }, [firestore, id, user?.uid]);
 
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
 
@@ -175,9 +179,9 @@ export default function AnalysisDetailPage() {
                     key={s.id}
                     className={cn(
                       "absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-slate-950 cursor-pointer transition-all",
-                      idx === selectedShotIdx ? "bg-orange-500 scale-125 z-20" : "bg-white/40 hover:bg-white z-10"
+                      idx === selectedShotIdx ? "bg-orange-50 scale-125 z-20" : "bg-white/40 hover:bg-white z-10"
                     )}
-                    style={{ left: `${((idx + 1) / (shots.length + 1)) * 100}%` }}
+                    style={{ left: `${((idx + 1) / ((shots?.length || 0) + 1)) * 100}%` }}
                     onClick={() => setSelectedShotIdx(idx)}
                   >
                     <div className={cn(
