@@ -9,10 +9,14 @@ import {
   Activity,
   Trophy,
   BookOpen,
-  Target
+  Target,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +27,17 @@ const navItems = [
 
 export function NavSidebar() {
   const pathname = usePathname();
+  const auth = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({ title: "Signed Out", description: "Your session has ended." });
+    } catch (error) {
+      console.error("Logout error", error);
+    }
+  };
 
   return (
     <aside className="w-64 border-r bg-slate-950 text-slate-300 h-screen sticky top-0 flex flex-col">
@@ -72,7 +87,7 @@ export function NavSidebar() {
         </nav>
       </div>
       
-      <div className="p-4 border-t border-slate-900 bg-black/40">
+      <div className="p-4 border-t border-slate-900 bg-black/40 space-y-4">
         <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 space-y-3">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-emerald-500" />
@@ -89,6 +104,15 @@ export function NavSidebar() {
             </div>
           </div>
         </div>
+
+        <Button 
+          variant="ghost" 
+          onClick={handleLogout}
+          className="w-full justify-start text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl gap-3 h-11 text-xs font-bold"
+        >
+          <LogOut className="h-4 w-4" />
+          End Session
+        </Button>
       </div>
     </aside>
   );

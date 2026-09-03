@@ -17,12 +17,13 @@ import {
   Dumbbell,
   Info,
   Zap,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -32,6 +33,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { analyzeForm, type AnalyzeFormOutput } from '@/ai/flows/analyze-form-flow';
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -42,8 +44,11 @@ export default function AnalysisDetailPage() {
   const { user, isUserLoading } = useUser();
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
+  
+  // AI Feedback State
+  const [aiFeedback, setAiFeedback] = useState<AnalyzeFormOutput | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // CRITICAL: Guarded Session Reference
   const sessionRef = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid) return null;
     return doc(firestore, 'analysisSessions', id);
@@ -51,14 +56,8 @@ export default function AnalysisDetailPage() {
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  // CRITICAL: Guarded Shots Query - Only run if session and user are fully resolved and match
-  // This ensures the query includes the userId filter required by Security Rules
   const shotsQuery = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid || !session) return null;
-    
-    // Safety check: ensure we only query shots for a session we own
-    if (session.userId !== user.uid) return null;
-
     return query(
       collection(firestore, 'shotResults'), 
       where('userId', '==', user.uid),
@@ -68,6 +67,32 @@ export default function AnalysisDetailPage() {
   }, [firestore, id, user?.uid, session?.id]);
 
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
+
+  const currentShot = shots?.[selectedShotIdx] || shots?.[0];
+
+  // Fetch AI Feedback when current shot changes
+  useEffect(() => {
+    if (currentShot) {
+      handleGetAiFeedback(currentShot);
+    }
+  }, [currentShot?.id]);
+
+  const handleGetAiFeedback = async (shot: any) => {
+    setIsAiLoading(true);
+    try {
+      const feedback = await analyzeForm({
+        kneeAngle: shot.metrics?.max_knee_flexion || 115,
+        elbowAngle: shot.metrics?.release_elbow_angle || 165,
+        torsoAngle: shot.metrics?.torso_angle || 5,
+        formScore: shot.overallScore || 85
+      });
+      setAiFeedback(feedback);
+    } catch (err) {
+      console.error("AI Coach Error:", err);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const isLoading = isUserLoading || isSessionLoading || (isShotsLoading && !!session);
 
@@ -95,8 +120,6 @@ export default function AnalysisDetailPage() {
       </div>
     );
   }
-
-  const currentShot = shots?.[selectedShotIdx] || shots?.[0];
 
   const getRecommendedDrills = (actionType: string) => {
     const type = actionType?.toLowerCase() || '';
@@ -345,15 +368,32 @@ export default function AnalysisDetailPage() {
           <Card className="border-none shadow-2xl bg-orange-600 text-white rounded-[2rem] overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
             <CardHeader>
-              <CardTitle className="text-white font-black uppercase italic tracking-tighter text-xl">AI Coach Pro</CardTitle>
+              <div className="flex items-center gap-2">
+                <Sparkles className={cn("h-5 w-5 text-white", isAiLoading && "animate-pulse")} />
+                <CardTitle className="text-white font-black uppercase italic tracking-tighter text-xl">AI Coach Pro</CardTitle>
+              </div>
               <CardDescription className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Biomechanical Insights</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 relative z-10">
-              <div className="bg-white/10 p-5 rounded-[1.5rem] border border-white/20 flex gap-4">
-                <Zap className="h-6 w-6 text-white shrink-0" />
-                <p className="text-xs font-bold leading-relaxed">
-                  During Shot {currentShot?.shotNumber || 1}, your {currentShot?.actionType?.toLowerCase() || 'shot'} displayed excellent vertical displacement. Target 115° knee flexion for peak power.
-                </p>
+              <div className="bg-white/10 p-5 rounded-[1.5rem] border border-white/20 flex flex-col gap-3 min-h-[120px]">
+                {isAiLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2">
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    <p className="text-[10px] font-black uppercase opacity-60">Coach is reviewing metrics...</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs font-bold leading-relaxed">
+                      {aiFeedback?.coachFeedback || "Analyze your shot to receive professional coaching feedback based on your joint angles and sequence."}
+                    </p>
+                    {aiFeedback?.keyTakeaway && (
+                      <div className="pt-2 border-t border-white/20 flex gap-2">
+                         <Zap className="h-3 w-3 text-amber-300 shrink-0" />
+                         <p className="text-[10px] font-black uppercase text-amber-200 tracking-tighter">{aiFeedback.keyTakeaway}</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               
               <Dialog open={isDrillModalOpen} onOpenChange={setIsDrillModalOpen}>
