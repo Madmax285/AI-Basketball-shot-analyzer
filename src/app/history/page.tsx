@@ -58,13 +58,20 @@ export default function SessionHistoryPage() {
   );
 
   const handleDeleteSession = async (sessionId: string) => {
+    if (!user) return;
     setIsDeleting(sessionId);
     try {
       // 1. Delete the session document
       await deleteDoc(doc(firestore, 'analysisSessions', sessionId));
       
-      // 2. Delete associated shot results (In production, this would be a Cloud Function or batch)
-      const shotsSnap = await getDocs(query(collection(firestore, 'shotResults'), where('sessionId', '==', sessionId)));
+      // 2. Delete associated shot results
+      // CRITICAL FIX: Added userId filter to the query to satisfy Security Rules
+      const shotsSnap = await getDocs(query(
+        collection(firestore, 'shotResults'), 
+        where('userId', '==', user.uid),
+        where('sessionId', '==', sessionId)
+      ));
+      
       shotsSnap.forEach(async (shot) => {
         await deleteDoc(doc(firestore, 'shotResults', shot.id));
       });
