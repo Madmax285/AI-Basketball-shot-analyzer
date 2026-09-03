@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -7,171 +6,82 @@ import {
   serverTimestamp,
   Firestore
 } from 'firebase/firestore';
-import { subDays, addDays, formatISO } from 'date-fns';
+import { subDays, formatISO } from 'date-fns';
 
 const COLLECTIONS = {
-  CUSTOMERS: 'customers',
-  PRODUCTS: 'products',
-  SALES_ORDERS: 'salesOrders',
-  ORDER_ITEMS: 'orderItems',
-  DELIVERIES: 'deliveries',
-  SHIPMENTS: 'shipments',
+  SESSIONS: 'analysisSessions',
+  SHOTS: 'shotResults',
   METADATA: 'system'
 };
 
-const CUSTOMER_NAMES = [
-  "Apex Manufacturing Pvt Ltd", "BlueWave Technologies Pvt Ltd", "Vertex Industrial Solutions",
-  "Nova Retail Systems", "Prime Components India", "GreenField Engineering", "Orion Electronics",
-  "Sunrise Logistics", "Metro Machinery", "GlobalTech Solutions", "Zenith Power Systems",
-  "Quantum Hardware", "Infinity Softwares", "Pinnacle Logistics", "Reliance Industrial",
-  "Tata Enterprise", "Mahindra & Mahindra", "Adani Group", "Larsen & Toubro", "Infosys Technologies",
-  "Wipro Limited", "HCL Technologies", "Tech Mahindra", "Bajaj Auto", "Hero MotoCorp"
-];
-
-const CATEGORIES = ["Electronics", "Industrial Equipment", "Office Equipment", "Computer Hardware", "Networking", "Software", "Packaging", "Safety Equipment"];
+const ACTION_TYPES = ['Jump Shot', '3-Point Shot', 'Layup', 'Dunk', 'Power Jump Shot'];
+const RESULTS = ['MADE', 'MISSED', 'MADE', 'MADE', 'DETECTED'];
 
 export async function initializeDemoDataset(db: Firestore, userId: string) {
   const metaRef = doc(db, COLLECTIONS.METADATA, 'demoDataset');
   const metaSnap = await getDoc(metaRef);
 
   if (metaSnap.exists() && metaSnap.data().initialized) {
-    throw new Error("Demo dataset is already initialized.");
+    // We allow re-seeding for athletes to reset their training history if they want
   }
 
   const batch = writeBatch(db);
 
-  // 1. Seed 25 Customers
-  const customers = [];
-  for (let i = 1; i <= 25; i++) {
-    const id = `CUST10${i.toString().padStart(2, '0')}`;
-    const customer = {
-      id,
-      name: CUSTOMER_NAMES[i - 1],
-      email: `contact@${CUSTOMER_NAMES[i - 1].toLowerCase().replace(/\s/g, '')}.com`,
-      phone: `+91 98765 ${i.toString().padStart(5, '0')}`,
-      address: `${i * 10} Industrial Area, Phase ${i % 5 + 1}`,
-      city: i % 2 === 0 ? "Mumbai" : "Bangalore",
-      status: "Active",
-      createdAt: serverTimestamp(),
-      createdBy: userId
-    };
-    batch.set(doc(db, COLLECTIONS.CUSTOMERS, id), customer);
-    customers.push(customer);
-  }
+  // Seed 15 historical sessions over the last 30 days
+  for (let i = 1; i <= 15; i++) {
+    const sessionId = `demo-session-${i}-${crypto.randomUUID().substring(0, 8)}`;
+    const createdAt = subDays(new Date(), 30 - (i * 2));
+    const score = 70 + Math.floor(Math.random() * 25);
 
-  // 2. Seed 40 Products
-  const products = [];
-  for (let i = 1; i <= 40; i++) {
-    const id = `PROD10${i.toString().padStart(2, '0')}`;
-    const stock = i % 5 === 0 ? 3 : 50; // Every 5th product is low stock
-    const product = {
-      id,
-      sku: `SKU-${1000 + i}`,
-      name: `${CATEGORIES[i % CATEGORIES.length]} Unit ${i}`,
-      category: CATEGORIES[i % CATEGORIES.length],
-      unitPrice: 500 + (i * 100),
-      availableStock: stock,
-      reorderLevel: 10,
-      status: stock <= 10 ? 'LOW STOCK' : 'IN STOCK',
-      createdAt: serverTimestamp()
-    };
-    batch.set(doc(db, COLLECTIONS.PRODUCTS, id), product);
-    products.push(product);
-  }
-
-  // 3. Seed 35 Sales Orders & Items
-  const salesOrders = [];
-  let itemCounter = 1;
-  for (let i = 1; i <= 35; i++) {
-    const id = `SO10${i.toString().padStart(2, '0')}`;
-    const customer = customers[i % customers.length];
-    const orderDate = subDays(new Date(), 40 - i);
-    
-    // Create 2-3 items per order
-    let orderTotal = 0;
-    const itemsCount = 2;
-    for (let j = 0; j < itemsCount; j++) {
-      const product = products[(i + j) % products.length];
-      const qty = 2;
-      const itemTotal = qty * product.unitPrice;
-      const itemId = `ITEM${itemCounter++}`;
-      
-      batch.set(doc(db, COLLECTIONS.ORDER_ITEMS, itemId), {
-        id: itemId,
-        salesOrderId: id,
-        productId: product.id,
-        productName: product.name,
-        quantity: qty,
-        unitPrice: product.unitPrice,
-        totalPrice: itemTotal
-      });
-      orderTotal += itemTotal;
-    }
-
-    const order = {
-      id,
-      customerId: customer.id,
-      customerName: customer.name,
-      orderDate: formatISO(orderDate),
-      requestedDeliveryDate: formatISO(addDays(orderDate, 5)),
-      totalAmount: orderTotal,
-      status: i <= 10 ? "COMPLETED" : i <= 20 ? "SHIPPED" : i <= 30 ? "PROCESSING" : "NEW",
-      createdAt: formatISO(orderDate),
-      createdBy: userId
-    };
-    batch.set(doc(db, COLLECTIONS.SALES_ORDERS, id), order);
-    salesOrders.push(order);
-  }
-
-  // 4. Seed 30 Deliveries (including 5 delayed)
-  const deliveries = [];
-  for (let i = 1; i <= 30; i++) {
-    const id = `DEL10${i.toString().padStart(2, '0')}`;
-    const order = salesOrders[i - 1];
-    const isDelayed = i > 25; // Last 5 are delayed
-    
-    const delivery = {
-      id,
-      salesOrderId: order.id,
-      customerId: order.customerId,
-      customerName: order.customerName,
-      expectedDeliveryDate: isDelayed ? formatISO(subDays(new Date(), 5)) : formatISO(addDays(new Date(), 3)),
-      status: i <= 10 ? "DELIVERED" : i <= 20 ? "SHIPPED" : "PROCESSING",
-      createdAt: serverTimestamp()
-    };
-    batch.set(doc(db, COLLECTIONS.DELIVERIES, id), delivery);
-    deliveries.push(delivery);
-  }
-
-  // 5. Seed 25 Shipments
-  const carriers = ["BlueDart", "DTDC", "Delhivery", "DHL", "FedEx"];
-  for (let i = 1; i <= 25; i++) {
-    const id = `SHIP10${i.toString().padStart(2, '0')}`;
-    const delivery = deliveries[i - 1];
-    
-    batch.set(doc(db, COLLECTIONS.SHIPMENTS, id), {
-      id,
-      deliveryId: delivery.id,
-      salesOrderId: delivery.salesOrderId,
-      carrier: carriers[i % carriers.length],
-      trackingNumber: `TRK-2026-${100000 + i}`,
-      status: i <= 10 ? "DELIVERED" : "IN_TRANSIT",
-      createdAt: serverTimestamp()
+    batch.set(doc(db, COLLECTIONS.SESSIONS, sessionId), {
+      id: sessionId,
+      userId: userId,
+      filename: `training_clip_${i}.mp4`,
+      createdAt: createdAt.toISOString(),
+      status: 'completed',
+      overallScore: score,
+      processedVideoUrl: `https://picsum.photos/seed/basketball-${i}/1200/800`,
+      duration: 8.5 + i,
+      type: 'video'
     });
+
+    // Seed 2-4 shots per session
+    const shotsCount = 2 + Math.floor(Math.random() * 3);
+    for (let j = 1; j <= shotsCount; j++) {
+      const shotId = `${sessionId}-shot-${j}`;
+      const shotScore = score + (Math.random() * 10 - 5);
+      const actionType = ACTION_TYPES[Math.floor(Math.random() * ACTION_TYPES.length)];
+      
+      batch.set(doc(db, COLLECTIONS.SHOTS, shotId), {
+        id: shotId,
+        sessionId,
+        userId: userId,
+        shotNumber: j,
+        actionType,
+        result: RESULTS[Math.floor(Math.random() * RESULTS.length)],
+        location: actionType.includes('3-Point') ? 'Beyond 3pt Line' : 'Key Area',
+        confidence: 88 + Math.floor(Math.random() * 10),
+        overallScore: Math.round(shotScore),
+        lowerBodyScore: Math.round(shotScore - 5),
+        upperBodyScore: Math.round(shotScore + j),
+        alignmentScore: Math.round(shotScore - 2),
+        releaseScore: Math.round(shotScore + 3),
+        consistencyScore: 85 + (i * 0.5),
+        metrics: {
+          max_knee_flexion: 110 + (Math.random() * 15),
+          release_elbow_angle: 155 + (Math.random() * 20),
+          torso_angle: 5 + (Math.random() * 10)
+        }
+      });
+    }
   }
 
   // Finalize metadata
   batch.set(metaRef, {
     initialized: true,
     initializedAt: serverTimestamp(),
-    datasetVersion: "1.0",
-    counts: {
-      customers: 25,
-      products: 40,
-      salesOrders: 35,
-      deliveries: 30,
-      shipments: 25
-    }
+    datasetVersion: "2.0", // Updated for Basketball context
+    ownerId: userId
   });
 
   await batch.commit();
