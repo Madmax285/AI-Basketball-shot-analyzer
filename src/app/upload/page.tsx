@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -84,7 +83,6 @@ export default function UploadPage() {
       const mockScore = 75 + Math.floor(Math.random() * 20);
       const isImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg');
       
-      // Use non-blocking updates for Firestore mutations to improve responsiveness
       setDocumentNonBlocking(sessionRef, {
         id: sessionId,
         userId: user?.uid || 'anonymous',
@@ -95,9 +93,8 @@ export default function UploadPage() {
         processedVideoUrl: isImage ? 'https://picsum.photos/seed/basketball-still/1200/800' : 'https://picsum.photos/seed/basketball/1200/600',
         duration: isImage ? 0 : 8.4,
         type: isImage ? 'image' : 'video'
-      }, {});
+      }, { merge: true });
 
-      // Create multiple shots for video for demo purposes
       const numShots = isImage ? 1 : 3;
       for (let i = 1; i <= numShots; i++) {
         const shotId = crypto.randomUUID();
@@ -124,7 +121,7 @@ export default function UploadPage() {
             release_elbow_angle: 168.2,
             torso_angle: 8.4
           }
-        }, {});
+        }, { merge: true });
       }
 
       toast({
@@ -132,7 +129,6 @@ export default function UploadPage() {
         description: `${isImage ? 'Photo' : 'Video'} is being processed. Redirecting to analysis dashboard...`,
       });
 
-      // Navigate after a short delay to allow background sync to initiate
       setTimeout(() => {
         router.push(`/analysis/${sessionId}`);
       }, 500);
@@ -145,8 +141,6 @@ export default function UploadPage() {
       });
     }
   };
-
-  const isImage = file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg'));
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-20">
@@ -204,7 +198,7 @@ export default function UploadPage() {
               <div className="bg-slate-50 p-6 rounded-[1.5rem] border border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-orange-600 p-3 rounded-2xl shadow-lg">
-                    {isImage ? <ImageIcon className="h-6 w-6 text-white" /> : <Video className="h-6 w-6 text-white" />}
+                    {file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg') ? <ImageIcon className="h-6 w-6 text-white" /> : <Video className="h-6 w-6 text-white" />}
                   </div>
                   <div>
                     <p className="font-black text-slate-900 truncate max-w-[200px] md:max-w-md">{file.name}</p>
@@ -246,7 +240,7 @@ export default function UploadPage() {
                 Analyzing Scene...
               </>
             ) : (
-              `Process ${isImage ? 'Photo' : 'Video'} Analysis`
+              `Process ${file && (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg')) ? 'Photo' : 'Video'} Analysis`
             )}
           </Button>
         </CardFooter>
