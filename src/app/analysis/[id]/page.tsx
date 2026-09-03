@@ -38,7 +38,8 @@ import { analyzeForm, type AnalyzeFormOutput } from '@/ai/flows/analyze-form-flo
 export default function AnalysisDetailPage() {
   const params = useParams();
   const rawId = params?.id;
-  const id = typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : null;
+  // Robustly extract ID and handle common "undefined" string issue
+  const id = typeof rawId === 'string' && rawId !== 'undefined' ? rawId : null;
   
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
@@ -49,15 +50,17 @@ export default function AnalysisDetailPage() {
   const [aiFeedback, setAiFeedback] = useState<AnalyzeFormOutput | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  // Guarded session reference
   const sessionRef = useMemoFirebase(() => {
-    if (!id || id === 'undefined' || !user?.uid) return null;
+    if (!id || !user?.uid) return null;
     return doc(firestore, 'analysisSessions', id);
   }, [firestore, id, user?.uid]);
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
+  // Guarded shots query - only run if session and user are fully resolved
   const shotsQuery = useMemoFirebase(() => {
-    if (!id || id === 'undefined' || !user?.uid || !session) return null;
+    if (!id || !user?.uid || !session) return null;
     return query(
       collection(firestore, 'shotResults'), 
       where('userId', '==', user.uid),
@@ -107,7 +110,7 @@ export default function AnalysisDetailPage() {
     );
   }
 
-  if (!session) {
+  if (!id || !session) {
     return (
       <div className="text-center py-20 basketball-grid rounded-[3rem] border-2 border-dashed">
         <h2 className="text-2xl font-black italic uppercase text-slate-900">Analysis Not Found</h2>
