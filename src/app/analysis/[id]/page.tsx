@@ -10,18 +10,13 @@ import {
   Activity, 
   ChevronLeft, 
   Play, 
-  Target,
-  Zap,
   CheckCircle2,
-  AlertTriangle,
   MapPin,
   ShieldAlert,
   BrainCircuit,
-  Clock,
-  ChevronRight,
-  TrendingUp,
   Dumbbell,
   Info,
+  Zap,
   Loader2
 } from 'lucide-react';
 import Link from 'next/link';
@@ -40,13 +35,15 @@ import {
 
 export default function AnalysisDetailPage() {
   const params = useParams();
-  const id = params?.id as string;
+  const rawId = params?.id;
+  const id = typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : null;
+  
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
-  // Guarded Session Reference
+  // CRITICAL: Guarded Session Reference to prevent unauthorized GET requests
   const sessionRef = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid) return null;
     return doc(firestore, 'analysisSessions', id);
@@ -54,8 +51,7 @@ export default function AnalysisDetailPage() {
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  // Guarded Shots Query
-  // Note: Firestore requires query filters to match security rules constraints for 'list'
+  // CRITICAL: Guarded Shots Query to match Security Rules list requirements
   const shotsQuery = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid) return null;
     return query(
@@ -98,13 +94,14 @@ export default function AnalysisDetailPage() {
   const currentShot = shots?.[selectedShotIdx] || shots?.[0];
 
   const getRecommendedDrills = (actionType: string) => {
-    if (actionType?.includes('3-Point') || actionType?.includes('Jump')) {
+    const type = actionType?.toLowerCase() || '';
+    if (type.includes('3-point') || type.includes('jump')) {
       return [
         { name: "Spot Up Shooting", desc: "Focus on 115° knee flexion and high follow-through." },
         { name: "Off-Dribble Pullups", desc: "Work on vertical displacement stability." }
       ];
     }
-    if (actionType?.includes('Layup')) {
+    if (type.includes('layup')) {
       return [
         { name: "Mikan Drill", desc: "Improve finish consistency under the rim." },
         { name: "Power Finish", desc: "Focus on two-foot takeoff and ball security." }
