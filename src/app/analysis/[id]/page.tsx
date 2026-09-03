@@ -92,7 +92,6 @@ export default function AnalysisDetailPage() {
         formScore: shot.overallScore || 85
       });
       
-      // Prevent race conditions: only update if this is still the active request
       if (feedbackRequestId.current === requestId) {
         setAiFeedback(feedback);
       }
