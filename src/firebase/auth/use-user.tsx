@@ -6,7 +6,6 @@ import { useAuth } from '@/firebase/provider';
 
 /**
  * Hook to access the current authenticated user and the loading state of the auth session.
- * @returns { user: User | null, isUserLoading: boolean }
  */
 export function useUser() {
   const auth = useAuth();
@@ -14,7 +13,6 @@ export function useUser() {
   const [isUserLoading, setIsUserLoading] = useState(true);
 
   useEffect(() => {
-    // Subscribe to auth state changes to keep the user object in sync
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setIsUserLoading(false);
