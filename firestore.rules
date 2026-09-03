@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basketball AI Video Analyzer - Secure Ownership Rules (v1.2.2)
+    // Basketball AI Video Analyzer - Secure Ownership Rules (v1.2.3)
     
     // Helper: Check if user is authenticated
     function isAuthenticated() {
@@ -10,33 +10,34 @@ service cloud.firestore {
     
     // Helper: Check if user owns the document via a data field
     function isOwner(data) {
-      return isAuthenticated() && data.userId == request.auth.uid;
+      return isAuthenticated() && data != null && data.userId == request.auth.uid;
     }
 
     match /analysisSessions/{sessionId} {
-      // Allow individual lookups and filtered queries
+      // Allow getting a specific session if owned by the user
       allow get: if isOwner(resource.data);
-      allow list: if isAuthenticated() && request.query.limit <= 100 && request.auth.uid == request.resource.data.userId;
       
-      // Ownership enforcement for writes
-      allow create: if isOwner(request.resource.data);
+      // Allow listing sessions filtered by the user's UID
+      allow list: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Enforce ownership on creation and updates
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isOwner(resource.data);
     }
     
     match /shotResults/{shotId} {
-      // Explicitly allow list operations where the query matches the userId filter
       allow get: if isOwner(resource.data);
-      allow list: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow list: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
-      allow create: if isOwner(request.resource.data);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isOwner(resource.data);
     }
     
     match /detectedEvents/{eventId} {
       allow get: if isOwner(resource.data);
-      allow list: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow list: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
-      allow create: if isOwner(request.resource.data);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isOwner(resource.data);
     }
     
