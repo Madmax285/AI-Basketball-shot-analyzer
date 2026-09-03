@@ -50,6 +50,7 @@ export default function BiometricsSuitePage() {
 
   useEffect(() => {
     if (sessions) {
+      // Deferred random data generation to prevent hydration mismatches
       const data = sessions.map(s => ({ 
         date: format(new Date(s.createdAt), 'MMM d'), 
         score: s.overallScore,

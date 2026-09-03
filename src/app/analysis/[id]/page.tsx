@@ -43,7 +43,7 @@ export default function AnalysisDetailPage() {
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
-  // CRITICAL: Guarded Session Reference to prevent unauthorized GET requests
+  // CRITICAL: Guarded Session Reference
   const sessionRef = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid) return null;
     return doc(firestore, 'analysisSessions', id);
@@ -51,20 +51,20 @@ export default function AnalysisDetailPage() {
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  // CRITICAL: Guarded Shots Query to match Security Rules list requirements
+  // CRITICAL: Guarded Shots Query - Only run if session and user are fully resolved
   const shotsQuery = useMemoFirebase(() => {
-    if (!id || id === 'undefined' || !user?.uid) return null;
+    if (!id || id === 'undefined' || !user?.uid || !session) return null;
     return query(
       collection(firestore, 'shotResults'), 
       where('userId', '==', user.uid),
       where('sessionId', '==', id),
       orderBy('shotNumber', 'asc')
     );
-  }, [firestore, id, user?.uid]);
+  }, [firestore, id, user?.uid, !!session]);
 
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
 
-  const isLoading = isUserLoading || isSessionLoading || isShotsLoading;
+  const isLoading = isUserLoading || isSessionLoading || (isShotsLoading && !!session);
 
   if (isLoading) {
     return (
