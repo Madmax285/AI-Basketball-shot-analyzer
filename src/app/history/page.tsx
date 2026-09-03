@@ -42,6 +42,7 @@ export default function SessionHistoryPage() {
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!user?.uid) return null;
+    // CRITICAL: We MUST filter by userId to pass the Security Rule 'request.query.userId == request.auth.uid'
     return query(
       collection(firestore, 'analysisSessions'), 
       where('userId', '==', user.uid),
@@ -61,14 +62,14 @@ export default function SessionHistoryPage() {
     if (!user?.uid) return;
     setIsDeleting(sessionId);
     try {
-      // 1. Find all associated shot results
+      // 1. Find all associated shot results constrained to this user and session
       const shotsSnap = await getDocs(query(
         collection(firestore, 'shotResults'), 
         where('userId', '==', user.uid),
         where('sessionId', '==', sessionId)
       ));
       
-      // 2. Delete shot results one by one (or could use batch)
+      // 2. Delete shot results asynchronously
       const deletePromises = shotsSnap.docs.map(shot => deleteDoc(doc(firestore, 'shotResults', shot.id)));
       await Promise.all(deletePromises);
 
