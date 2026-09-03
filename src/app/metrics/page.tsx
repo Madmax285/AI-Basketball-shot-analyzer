@@ -1,7 +1,7 @@
 'use client';
 
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
   Activity, 
@@ -9,6 +9,7 @@ import {
   TrendingDown, 
   Dna,
   Zap,
+  Loader2
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -30,15 +31,23 @@ import { useState, useEffect } from 'react';
 
 export default function BiometricsSuitePage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [trendData, setChartData] = useState<any[]>([]);
 
-  const sessionsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'analysisSessions'), orderBy('createdAt', 'desc')),
-    [firestore]
-  );
-  const { data: sessions, isLoading } = useCollection(sessionsQuery);
+  // CRITICAL: Always filter by userId for security rules and privacy
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'analysisSessions'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+  }, [firestore, user]);
 
-  // Defer random data generation until client-side hydration to avoid mismatches
+  const { data: sessions, isLoading: isQueryLoading } = useCollection(sessionsQuery);
+
+  const isLoading = isUserLoading || isQueryLoading;
+
   useEffect(() => {
     if (sessions) {
       const data = sessions.map(s => ({ 
@@ -69,8 +78,18 @@ export default function BiometricsSuitePage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Activity className="h-10 w-10 text-orange-600 animate-pulse" />
+        <Loader2 className="h-10 w-10 text-orange-600 animate-spin" />
         <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Biometrics...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8">
+        <Activity className="h-16 w-16 text-slate-200 mb-4" />
+        <h2 className="text-xl font-black uppercase italic">Authentication Required</h2>
+        <p className="text-slate-500 max-w-xs mt-2">Please wait for the secure training session to initialize.</p>
       </div>
     );
   }

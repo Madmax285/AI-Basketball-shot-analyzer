@@ -38,7 +38,14 @@
         "alignmentScore": { "type": "number" },
         "releaseScore": { "type": "number" },
         "consistencyScore": { "type": "number" },
-        "metrics": { "type": "object" },
+        "metrics": { 
+          "type": "object",
+          "properties": {
+            "max_knee_flexion": { "type": "number" },
+            "release_elbow_angle": { "type": "number" },
+            "torso_angle": { "type": "number" }
+          }
+        },
         "foulAnalysis": { "type": "object" },
         "violationAnalysis": { "type": "object" }
       },

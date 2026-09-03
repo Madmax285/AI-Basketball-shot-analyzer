@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 export default function UploadPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const firestore = useFirestore();
   
@@ -72,7 +72,7 @@ export default function UploadPage() {
   };
 
   const handleUpload = () => {
-    if (!file) return;
+    if (!file || !user) return;
 
     setIsUploading(true);
     
@@ -83,9 +83,10 @@ export default function UploadPage() {
       const mockScore = 75 + Math.floor(Math.random() * 20);
       const isImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg');
       
+      // CRITICAL: Always use the authenticated user's UID
       setDocumentNonBlocking(sessionRef, {
         id: sessionId,
-        userId: user?.uid || 'anonymous',
+        userId: user.uid,
         filename: file.name,
         createdAt: new Date().toISOString(),
         status: 'completed',
@@ -102,9 +103,11 @@ export default function UploadPage() {
         const actionTypes = ['Jump Shot', '3-Point Shot', 'Layup', 'Dunk'];
         const results = ['MADE', 'MISSED', 'DETECTED'];
         
+        // CRITICAL: Every shot result must contain the userId for Security Rules
         setDocumentNonBlocking(doc(firestore, 'shotResults', shotId), {
           id: shotId,
           sessionId,
+          userId: user.uid,
           shotNumber: i,
           actionType: i === 1 ? '3-Point Shot' : actionTypes[Math.floor(Math.random() * actionTypes.length)],
           result: i === 1 ? 'MADE' : results[Math.floor(Math.random() * results.length)],
@@ -231,10 +234,15 @@ export default function UploadPage() {
         <CardFooter className="bg-slate-50/50 p-8 border-t border-slate-100">
           <Button 
             className="w-full h-14 bg-orange-600 hover:bg-orange-700 shadow-xl shadow-orange-200 text-lg font-black rounded-2xl"
-            disabled={!file || isUploading}
+            disabled={!file || isUploading || isUserLoading || !user}
             onClick={handleUpload}
           >
-            {isUploading ? (
+            {isUserLoading ? (
+              <>
+                <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                Initializing Auth...
+              </>
+            ) : isUploading ? (
               <>
                 <Loader2 className="mr-3 h-6 w-6 animate-spin" />
                 Analyzing Scene...

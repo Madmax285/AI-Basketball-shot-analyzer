@@ -1,49 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basketball AI Video Analyzer - Secure Ownership Rules (v1.1.0)
+    // Basketball AI Video Analyzer - Secure Ownership Rules (v1.2.1)
     
     // Helper: Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Helper: Check if user owns the document
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
     // Helper: Check if user owns the document via a data field
-    function isResourceOwner() {
-      return isAuthenticated() && resource.data.userId == request.auth.uid;
+    function isOwner(data) {
+      return isAuthenticated() && data.userId == request.auth.uid;
     }
 
     match /analysisSessions/{sessionId} {
-      // Users can only list and read their own sessions
-      allow read: if isOwner(resource.data.userId);
+      // Users can only read and list their own sessions
+      allow read: if isOwner(resource.data);
       // Users can create sessions for themselves
-      allow create: if isOwner(request.resource.data.userId);
+      allow create: if isOwner(request.resource.data);
       // Users can update/delete their own sessions
-      allow update, delete: if isOwner(resource.data.userId);
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /shotResults/{shotId} {
       // Enforce ownership check on individual shot metrics
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
+      // Note: Queries must include a where('userId', '==', request.auth.uid) filter
+      allow read: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /detectedEvents/{eventId} {
-      allow read: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
+      allow read: if isOwner(resource.data);
+      allow create: if isOwner(request.resource.data);
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /system/{document=**} {
       // System metadata can be read by anyone authenticated
       allow read: if isAuthenticated();
-      allow write: if false; // System configs are read-only for clients
+      allow write: if false; 
     }
     
     // Default deny for all other paths
