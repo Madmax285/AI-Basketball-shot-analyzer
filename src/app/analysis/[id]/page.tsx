@@ -51,16 +51,21 @@ export default function AnalysisDetailPage() {
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
-  // CRITICAL: Guarded Shots Query - Only run if session and user are fully resolved
+  // CRITICAL: Guarded Shots Query - Only run if session and user are fully resolved and match
+  // This ensures the query includes the userId filter required by Security Rules
   const shotsQuery = useMemoFirebase(() => {
     if (!id || id === 'undefined' || !user?.uid || !session) return null;
+    
+    // Safety check: ensure we only query shots for a session we own
+    if (session.userId !== user.uid) return null;
+
     return query(
       collection(firestore, 'shotResults'), 
       where('userId', '==', user.uid),
       where('sessionId', '==', id),
       orderBy('shotNumber', 'asc')
     );
-  }, [firestore, id, user?.uid, !!session]);
+  }, [firestore, id, user?.uid, session?.id]);
 
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
 
