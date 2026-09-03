@@ -37,7 +37,7 @@ export default function BiometricsSuitePage() {
   const [chartData, setChartData] = useState<any[]>([]);
 
   const sessionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user?.uid) return null;
     return query(
       collection(firestore, 'analysisSessions'), 
       where('userId', '==', user.uid),
@@ -50,10 +50,11 @@ export default function BiometricsSuitePage() {
 
   useEffect(() => {
     if (sessions && sessions.length > 0) {
-      const data = [...sessions].reverse().map(s => ({ 
-        date: format(new Date(s.createdAt), 'MMM d'), 
+      const data = [...sessions].reverse().map((s, idx) => ({ 
+        date: s.createdAt ? format(new Date(s.createdAt), 'MMM d') : `S-${idx}`, 
         score: s.overallScore || 0,
-        avgKnee: 110 + (Math.random() * 10) // Simplified for trend
+        // Using a deterministic value based on score to avoid hydration mismatch
+        avgKnee: Math.max(90, Math.min(130, 110 + ((s.overallScore || 80) % 20))) 
       }));
       setChartData(data);
     }

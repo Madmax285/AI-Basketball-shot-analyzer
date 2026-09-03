@@ -41,13 +41,13 @@ export default function SessionHistoryPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const sessionsQuery = useMemoFirebase(() => {
-    if (!user) return null;
+    if (!user?.uid) return null;
     return query(
       collection(firestore, 'analysisSessions'), 
       where('userId', '==', user.uid),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore, user]);
+  }, [firestore, user?.uid]);
 
   const { data: sessions, isLoading: isQueryLoading } = useCollection(sessionsQuery);
 
@@ -58,23 +58,22 @@ export default function SessionHistoryPage() {
   );
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (!user) return;
+    if (!user?.uid) return;
     setIsDeleting(sessionId);
     try {
-      // 1. Delete the session document
-      await deleteDoc(doc(firestore, 'analysisSessions', sessionId));
-      
-      // 2. Delete associated shot results
-      // CRITICAL FIX: Added userId filter to the query to satisfy Security Rules
+      // 1. Find all associated shot results
       const shotsSnap = await getDocs(query(
         collection(firestore, 'shotResults'), 
         where('userId', '==', user.uid),
         where('sessionId', '==', sessionId)
       ));
       
-      shotsSnap.forEach(async (shot) => {
-        await deleteDoc(doc(firestore, 'shotResults', shot.id));
-      });
+      // 2. Delete shot results one by one (or could use batch)
+      const deletePromises = shotsSnap.docs.map(shot => deleteDoc(doc(firestore, 'shotResults', shot.id)));
+      await Promise.all(deletePromises);
+
+      // 3. Delete the session document
+      await deleteDoc(doc(firestore, 'analysisSessions', sessionId));
 
       toast({
         title: "Session Deleted",
@@ -128,14 +127,14 @@ export default function SessionHistoryPage() {
             </div>
           ) : filteredSessions?.length ? (
             <div className="divide-y divide-slate-50">
-              {filteredSessions.map((session, idx) => (
+              {filteredSessions.map((session) => (
                 <div key={session.id} className="group relative">
                   <Link href={`/analysis/${session.id}`}>
                     <div className="flex items-center justify-between p-6 hover:bg-orange-50 transition-all cursor-pointer">
                       <div className="flex items-center gap-6">
                         <div className="h-16 w-16 rounded-[1.25rem] bg-slate-100 flex items-center justify-center group-hover:bg-orange-600 transition-colors shadow-inner overflow-hidden relative">
                           <img 
-                            src={session.processedVideoUrl} 
+                            src={session.processedVideoUrl || 'https://picsum.photos/seed/basketball/400/400'} 
                             alt="Video Thumb" 
                             className="w-full h-full object-cover opacity-20 group-hover:opacity-10 transition-opacity" 
                           />
@@ -144,7 +143,7 @@ export default function SessionHistoryPage() {
                         <div>
                           <p className="text-lg font-black text-slate-900 group-hover:text-orange-600 transition-colors">{session.filename}</p>
                           <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(new Date(session.createdAt), 'MMM d, yyyy')}</span>
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {session.createdAt ? format(new Date(session.createdAt), 'MMM d, yyyy') : 'Recently'}</span>
                             <span>•</span>
                             <span>{session.duration}s length</span>
                           </div>

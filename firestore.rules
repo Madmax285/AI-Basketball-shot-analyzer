@@ -1,32 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basketball AI Video Analyzer - Ownership Rules (v1.3.3)
+    // Basketball AI Video Analyzer - Ownership Rules (v1.3.5)
     
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Helper to check if the user owns the document data
+    // Uses .get() to handle cases where userId might be missing in legacy data
+    function isOwner(data) {
+      return isAuthenticated() && data.get('userId', '') == request.auth.uid;
+    }
+
     // Rules for Analysis Sessions
     match /analysisSessions/{sessionId} {
-      // Allow read if the document belongs to the user or if it's being queried by the owner
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // allow get: for single document reads (requires ownership)
+      // allow list: for collection queries (requires ownership filter in frontend)
+      allow read: if isOwner(resource.data);
+      
+      allow create: if isAuthenticated() 
+                    && request.resource.data.userId == request.auth.uid;
+                    
+      allow update, delete: if isOwner(resource.data);
     }
     
     // Rules for Individual Shot Results
     match /shotResults/{shotId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isOwner(resource.data);
+      
+      allow create: if isAuthenticated() 
+                    && request.resource.data.userId == request.auth.uid;
+                    
+      allow update, delete: if isOwner(resource.data);
     }
     
     // Rules for Detected Events
     match /detectedEvents/{eventId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isOwner(resource.data);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data);
     }
     
     // System metadata
