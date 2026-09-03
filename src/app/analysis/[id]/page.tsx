@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { useDoc, useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +21,8 @@ import {
   ChevronRight,
   TrendingUp,
   Dumbbell,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -41,28 +41,32 @@ import {
 export default function AnalysisDetailPage() {
   const { id } = useParams();
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [selectedShotIdx, setSelectedShotIdx] = useState(0);
   const [isDrillModalOpen, setIsDrillModalOpen] = useState(false);
 
   const sessionRef = useMemoFirebase(() => {
-    if (!id) return null;
+    if (!id || !user) return null;
     return doc(firestore, 'analysisSessions', id as string);
-  }, [firestore, id]);
+  }, [firestore, id, user]);
   
   const { data: session, isLoading: isSessionLoading } = useDoc(sessionRef);
 
   const shotsQuery = useMemoFirebase(() => {
-    if (!id) return null;
+    if (!id || !user) return null;
     return query(
       collection(firestore, 'shotResults'), 
-      where('sessionId', '==', id as string), 
+      where('sessionId', '==', id as string),
+      where('userId', '==', user.uid),
       orderBy('shotNumber', 'asc')
     );
-  }, [firestore, id]);
+  }, [firestore, id, user]);
 
   const { data: shots, isLoading: isShotsLoading } = useCollection(shotsQuery);
 
-  if (isSessionLoading || isShotsLoading) {
+  const isLoading = isUserLoading || isSessionLoading || isShotsLoading;
+
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="h-20 w-20 rounded-[2rem] bg-orange-600 animate-bounce shadow-2xl flex items-center justify-center">
@@ -77,7 +81,7 @@ export default function AnalysisDetailPage() {
     return (
       <div className="text-center py-20 basketball-grid rounded-[3rem] border-2 border-dashed">
         <h2 className="text-2xl font-black italic uppercase text-slate-900">Analysis Not Found</h2>
-        <p className="text-slate-500 font-medium mb-8">This session may have been deleted or expired.</p>
+        <p className="text-slate-500 font-medium mb-8">This session may belong to another user or was deleted.</p>
         <Link href="/history">
           <Button variant="outline" className="rounded-2xl h-12 px-8 border-2 font-black uppercase">
             Go To History
@@ -207,7 +211,7 @@ export default function AnalysisDetailPage() {
             </div>
           </Card>
 
-          {/* Shot Intelligence Cards */}
+          {/* Intelligence Cards */}
           <div className="grid gap-6 md:grid-cols-2">
             <Card className="border-none shadow-xl bg-white rounded-[2rem]">
               <CardHeader className="flex flex-row items-center gap-3">
@@ -348,7 +352,7 @@ export default function AnalysisDetailPage() {
               
               <Dialog open={isDrillModalOpen} onOpenChange={setIsDrillModalOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-full bg-white text-orange-600 hover:bg-white/90 font-black rounded-2xl h-12 uppercase italic">
+                  <Button className="w-full bg-white text-orange-600 hover:bg-white/90 font-black rounded-2xl h-12 uppercase italic" disabled={!currentShot}>
                     Get Drill Recommendations
                   </Button>
                 </DialogTrigger>

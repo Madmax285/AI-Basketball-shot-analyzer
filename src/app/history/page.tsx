@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -11,7 +10,8 @@ import {
   ChevronRight, 
   Search,
   Calendar,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
@@ -21,13 +21,21 @@ import { useState } from 'react';
 
 export default function SessionHistoryPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const [search, setSearch] = useState('');
 
-  const sessionsQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'analysisSessions'), orderBy('createdAt', 'desc')),
-    [firestore]
-  );
-  const { data: sessions, isLoading } = useCollection(sessionsQuery);
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(firestore, 'analysisSessions'), 
+      where('userId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+  }, [firestore, user]);
+
+  const { data: sessions, isLoading: isQueryLoading } = useCollection(sessionsQuery);
+
+  const isLoading = isUserLoading || isQueryLoading;
 
   const filteredSessions = sessions?.filter(s => 
     s.filename.toLowerCase().includes(search.toLowerCase())
@@ -64,7 +72,7 @@ export default function SessionHistoryPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="py-20 text-center flex flex-col items-center gap-4">
-              <History className="h-12 w-12 text-slate-100 animate-spin" />
+              <Loader2 className="h-12 w-12 text-orange-600 animate-spin" />
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Performance Data...</p>
             </div>
           ) : filteredSessions?.length ? (

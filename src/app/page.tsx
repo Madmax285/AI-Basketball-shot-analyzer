@@ -1,8 +1,7 @@
-
 'use client';
 
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit, doc } from 'firebase/firestore';
+import { useCollection, useMemoFirebase, useFirestore, useUser } from '@/firebase';
+import { collection, query, orderBy, limit, doc, where } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,17 +27,22 @@ import { useRouter } from 'next/navigation';
 export default function Dashboard() {
   const firestore = useFirestore();
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const [isSeeding, setIsSeeding] = useState(false);
   
   const sessionsQuery = useMemoFirebase(() => {
+    if (!user) return null;
     return query(
       collection(firestore, 'analysisSessions'),
+      where('userId', '==', user.uid),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
-  const { data: sessions, isLoading } = useCollection(sessionsQuery);
+  const { data: sessions, isLoading: isQueryLoading } = useCollection(sessionsQuery);
+
+  const isLoading = isUserLoading || isQueryLoading;
 
   const avgScore = sessions?.length 
     ? Math.round(sessions.reduce((acc, s) => acc + (s.overallScore || 0), 0) / sessions.length) 
@@ -50,14 +54,14 @@ export default function Dashboard() {
   })).reverse() || [];
 
   const handleTryDemo = () => {
+    if (!user) return;
     setIsSeeding(true);
     const sessionId = `demo-${crypto.randomUUID().substring(0,8)}`;
     const sessionRef = doc(firestore, 'analysisSessions', sessionId);
     
-    // Seed a realistic demo session
     setDocumentNonBlocking(sessionRef, {
       id: sessionId,
-      userId: 'demo-user',
+      userId: user.uid,
       filename: 'elite_jumpshot_sample.mp4',
       createdAt: new Date().toISOString(),
       status: 'completed',
@@ -67,7 +71,6 @@ export default function Dashboard() {
       type: 'video'
     }, {});
 
-    // Create a few demo shots
     const shotData = [
       { id: 'shot-1', type: '3-Point Shot', result: 'MADE', score: 91 },
       { id: 'shot-2', type: 'Layup', result: 'MADE', score: 84 },
@@ -78,6 +81,7 @@ export default function Dashboard() {
       setDocumentNonBlocking(doc(firestore, 'shotResults', `${sessionId}-${shot.id}`), {
         id: `${sessionId}-${shot.id}`,
         sessionId,
+        userId: user.uid,
         shotNumber: i + 1,
         actionType: shot.type,
         result: shot.result,
@@ -95,7 +99,7 @@ export default function Dashboard() {
 
     setTimeout(() => {
       router.push(`/analysis/${sessionId}`);
-    }, 1000);
+    }, 1500);
   };
 
   return (
@@ -112,7 +116,7 @@ export default function Dashboard() {
           <Button 
             variant="outline" 
             onClick={handleTryDemo}
-            disabled={isSeeding}
+            disabled={isSeeding || isLoading}
             className="h-12 px-6 rounded-2xl border-2 border-orange-200 text-orange-600 font-bold hover:bg-orange-50 gap-2"
           >
             {isSeeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -134,7 +138,7 @@ export default function Dashboard() {
             <Award className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-slate-900">{avgScore}</div>
+            <div className="text-4xl font-black text-slate-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : avgScore}</div>
             <p className="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-widest opacity-60">Based on last {sessions?.length || 0} shots</p>
           </CardContent>
         </Card>
@@ -145,7 +149,7 @@ export default function Dashboard() {
             <History className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-black text-slate-900">{sessions?.length || 0}</div>
+            <div className="text-4xl font-black text-slate-900">{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : sessions?.length || 0}</div>
             <p className="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-widest opacity-60">Videos analyzed to date</p>
           </CardContent>
         </Card>

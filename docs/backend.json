@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "AnalysisSession": {
@@ -25,6 +24,7 @@
       "properties": {
         "id": { "type": "string" },
         "sessionId": { "type": "string" },
+        "userId": { "type": "string" },
         "shotNumber": { "type": "number" },
         "actionType": { "type": "string" },
         "confidence": { "type": "number" },
@@ -42,7 +42,7 @@
         "foulAnalysis": { "type": "object" },
         "violationAnalysis": { "type": "object" }
       },
-      "required": ["id", "sessionId", "shotNumber", "actionType"]
+      "required": ["id", "sessionId", "userId", "shotNumber", "actionType"]
     },
     "DetectedEvent": {
       "title": "DetectedEvent",
@@ -51,15 +51,17 @@
       "properties": {
         "id": { "type": "string" },
         "sessionId": { "type": "string" },
+        "userId": { "type": "string" },
         "timestamp": { "type": "number" },
         "eventType": { "type": "string" },
         "label": { "type": "string" },
         "confidence": { "type": "number" }
-      }
+      },
+      "required": ["id", "sessionId", "userId"]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": ["anonymous", "password"]
   },
   "firestore": {
     "analysisSessions": {
