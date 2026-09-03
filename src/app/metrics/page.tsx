@@ -66,6 +66,15 @@ export default function BiometricsSuitePage() {
     { subject: 'Extension', A: avgMetrics.extension, fullMark: 100 },
   ] : [];
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Activity className="h-10 w-10 text-orange-600 animate-pulse" />
+        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Biometrics...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-20 basketball-grid min-h-full">
       <div>
@@ -84,19 +93,23 @@ export default function BiometricsSuitePage() {
           </CardHeader>
           <CardContent className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid stroke="#e2e8f0" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                <Radar
-                  name="Athlete Profile"
-                  dataKey="A"
-                  stroke="#f97316"
-                  fill="#f97316"
-                  fillOpacity={0.4}
-                />
-                <Tooltip />
-              </RadarChart>
+              {radarData.length > 0 ? (
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                  <PolarGrid stroke="#e2e8f0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                  <Radar
+                    name="Athlete Profile"
+                    dataKey="A"
+                    stroke="#f97316"
+                    fill="#f97316"
+                    fillOpacity={0.4}
+                  />
+                  <Tooltip />
+                </RadarChart>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400 font-bold uppercase text-[10px]">No sessions found</div>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>

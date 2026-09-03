@@ -1,8 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basketball AI Video Analyzer - Public Access Rules
-    // Explicitly allow read/write for all primary data collections to support the direct-access model.
+    // Basketball AI Video Analyzer - Public Access Rules (v1.1.0)
+    // This allows unauthenticated users to use the analyzer and view results.
     
     match /analysisSessions/{document=**} {
       allow read, write: if true;
